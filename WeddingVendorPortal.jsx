@@ -1,4 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const VENDORS = [
   // === VENUES ===
@@ -175,47 +178,39 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
   );
 }
 
-function MapPin({ vendor, isSelected, onClick, mapBounds }) {
-  const c = CAT_COLORS[vendor.category];
-  const x = ((vendor.lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
-  const y = ((mapBounds.maxLat - vendor.lat) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
+function makePinIcon(color, selected) {
+  const size = selected ? 20 : 14;
+  return L.divIcon({
+    className: "vendor-pin",
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${color};
+      border:2.5px solid ${selected ? "#fff" : "#0e0e0e"};
+      box-shadow:${selected ? `0 0 16px ${color}cc, 0 0 0 4px ${color}33` : "0 2px 6px rgba(0,0,0,0.5)"};
+      transition:all 0.2s ease;
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
 
-  return (
-    <div
-      onClick={onClick}
-      title={`${vendor.name} — ${vendor.priceRange}`}
-      style={{
-        position: "absolute",
-        left: `${x}%`, top: `${y}%`,
-        transform: "translate(-50%, -100%)",
-        cursor: "pointer",
-        zIndex: isSelected ? 20 : 10,
-        transition: "all 0.2s ease",
-      }}
-    >
-      <div style={{
-        width: isSelected ? 18 : 12,
-        height: isSelected ? 18 : 12,
-        borderRadius: "50%",
-        background: c.border,
-        border: `2.5px solid ${isSelected ? "#fff" : c.bg}`,
-        boxShadow: isSelected ? `0 0 16px ${c.border}88` : `0 2px 6px rgba(0,0,0,0.4)`,
-        transition: "all 0.2s ease",
-      }} />
-      {isSelected && (
-        <div style={{
-          position: "absolute", bottom: "calc(100% + 6px)", left: "50%",
-          transform: "translateX(-50%)", whiteSpace: "nowrap",
-          background: "#111", border: `1px solid ${c.border}`, borderRadius: 8,
-          padding: "6px 12px", fontSize: 12, color: "#f0ece2",
-          fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-        }}>
-          <div style={{ fontWeight: 700, fontSize: 13, fontFamily: "'Cormorant Garamond', serif" }}>{vendor.name}</div>
-          <div style={{ color: c.text, fontWeight: 600 }}>{vendor.priceRange}</div>
-        </div>
-      )}
-    </div>
-  );
+function FitBounds({ vendors }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!vendors.length) return;
+    const bounds = L.latLngBounds(vendors.map(v => [v.lat, v.lng]));
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+  }, [vendors, map]);
+  return null;
+}
+
+function FlyToSelected({ selectedVendor }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!selectedVendor) return;
+    map.flyTo([selectedVendor.lat, selectedVendor.lng], Math.max(map.getZoom(), 14), { duration: 0.8 });
+  }, [selectedVendor, map]);
+  return null;
 }
 
 export default function WeddingVendorPortal() {
@@ -238,20 +233,14 @@ export default function WeddingVendorPortal() {
     });
   }, [category, region, search, budget]);
 
-  const mapBounds = useMemo(() => {
-    if (!filtered.length) return { minLat: 43.2, maxLat: 43.9, minLng: -79.9, maxLng: -79.2 };
-    const pad = 0.04;
-    return {
-      minLat: Math.min(...filtered.map(v => v.lat)) - pad,
-      maxLat: Math.max(...filtered.map(v => v.lat)) + pad,
-      minLng: Math.min(...filtered.map(v => v.lng)) - pad,
-      maxLng: Math.max(...filtered.map(v => v.lng)) + pad,
-    };
-  }, [filtered]);
-
   const handleSelect = useCallback((id) => {
     setSelected(prev => prev === id ? null : id);
   }, []);
+
+  const selectedVendor = useMemo(
+    () => filtered.find(v => v.id === selected) || null,
+    [filtered, selected]
+  );
 
   return (
     <div style={{
@@ -265,6 +254,27 @@ export default function WeddingVendorPortal() {
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #1a1a1a; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        /* Leaflet dark-theme overrides */
+        .leaflet-container { background: #0a0a0a !important; font-family: 'DM Sans', sans-serif; }
+        .leaflet-control-zoom a {
+          background: #1a1a1a !important; color: #D4AF37 !important;
+          border: 1px solid #2a2a2a !important;
+        }
+        .leaflet-control-zoom a:hover { background: #2a2a2a !important; }
+        .leaflet-control-attribution {
+          background: rgba(17,17,17,0.85) !important; color: #888 !important;
+          backdrop-filter: blur(6px);
+        }
+        .leaflet-control-attribution a { color: #D4AF37 !important; }
+        .leaflet-popup-content-wrapper {
+          background: #f0ece2 !important; color: #111 !important;
+          border-radius: 10px !important;
+          box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
+        }
+        .leaflet-popup-tip { background: #f0ece2 !important; }
+        .leaflet-popup-close-button { color: #888 !important; }
+        .vendor-pin { background: transparent !important; border: none !important; }
       `}</style>
 
       {/* HEADER */}
@@ -416,61 +426,67 @@ export default function WeddingVendorPortal() {
         {view !== "list" && (
           <div style={{
             flex: view === "map" ? 1 : "0 0 55%",
-            background: "#141414",
+            background: "#0a0a0a",
             position: "relative",
             borderRight: view === "split" ? "1px solid #1f1f1f" : "none",
             overflow: "hidden",
           }}>
-            {/* Grid overlay */}
-            <div style={{
-              position: "absolute", inset: 0, opacity: 0.08,
-              backgroundImage: "linear-gradient(#D4AF37 1px, transparent 1px), linear-gradient(90deg, #D4AF37 1px, transparent 1px)",
-              backgroundSize: "60px 60px",
-            }} />
-
-            {/* Region labels */}
-            {[
-              { name: "Toronto", lat: 43.655, lng: -79.38 },
-              { name: "Mississauga", lat: 43.59, lng: -79.64 },
-              { name: "Vaughan", lat: 43.83, lng: -79.52 },
-              { name: "Markham", lat: 43.87, lng: -79.33 },
-              { name: "Hamilton", lat: 43.26, lng: -79.87 },
-              { name: "Burlington", lat: 43.33, lng: -79.80 },
-            ].map(r => {
-              const x = ((r.lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
-              const y = ((mapBounds.maxLat - r.lat) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
-              if (x < -5 || x > 105 || y < -5 || y > 105) return null;
-              return (
-                <div key={r.name} style={{
-                  position: "absolute", left: `${x}%`, top: `${y}%`,
-                  transform: "translate(-50%, -50%)",
-                  fontSize: 11, color: "#444", fontWeight: 600,
-                  letterSpacing: 2, textTransform: "uppercase",
-                  fontFamily: "'DM Sans', sans-serif",
-                  pointerEvents: "none", zIndex: 1,
-                }}>
-                  {r.name}
-                </div>
-              );
-            })}
-
-            {/* Pins */}
-            {filtered.map(v => (
-              <MapPin
-                key={v.id}
-                vendor={v}
-                isSelected={selected === v.id}
-                onClick={() => handleSelect(v.id)}
-                mapBounds={mapBounds}
+            <MapContainer
+              center={[43.65, -79.4]}
+              zoom={10}
+              scrollWheelZoom={true}
+              style={{ width: "100%", height: "100%", background: "#0a0a0a" }}
+              zoomControl={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                subdomains="abcd"
+                maxZoom={20}
               />
-            ))}
+              <FitBounds vendors={filtered} />
+              <FlyToSelected selectedVendor={selectedVendor} />
+              {filtered.map(v => {
+                const c = CAT_COLORS[v.category];
+                const isSel = selected === v.id;
+                return (
+                  <Marker
+                    key={v.id}
+                    position={[v.lat, v.lng]}
+                    icon={makePinIcon(c.border, isSel)}
+                    zIndexOffset={isSel ? 1000 : 0}
+                    eventHandlers={{ click: () => handleSelect(v.id) }}
+                  >
+                    <Popup>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 160 }}>
+                        <div style={{
+                          fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                          letterSpacing: 2, color: c.text, marginBottom: 4,
+                        }}>
+                          {v.category}
+                        </div>
+                        <div style={{
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontSize: 16, fontWeight: 600, color: "#111", marginBottom: 4,
+                        }}>
+                          {v.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>📍 {v.region}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{v.priceRange}</div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
 
             {/* Legend */}
             <div style={{
               position: "absolute", bottom: 16, left: 16,
-              background: "#111e", backdropFilter: "blur(10px)",
+              background: "rgba(17,17,17,0.92)", backdropFilter: "blur(10px)",
               border: "1px solid #222", borderRadius: 10,
               padding: "10px 14px", display: "flex", gap: 14,
+              zIndex: 500,
             }}>
               {Object.entries(CAT_COLORS).map(([key, c]) => (
                 <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -484,7 +500,9 @@ export default function WeddingVendorPortal() {
               <div style={{
                 position: "absolute", inset: 0, display: "flex",
                 alignItems: "center", justifyContent: "center",
-                color: "#555", fontSize: 14, fontStyle: "italic",
+                color: "#888", fontSize: 14, fontStyle: "italic",
+                background: "rgba(10,10,10,0.5)", pointerEvents: "none",
+                zIndex: 600,
               }}>
                 No vendors match your filters
               </div>
