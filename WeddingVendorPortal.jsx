@@ -5,38 +5,38 @@ import "leaflet/dist/leaflet.css";
 
 const VENDORS = [
   // === VENUES ===
-  { id: 1, name: "Casa Loma", category: "venue", region: "Toronto", lat: 43.6780, lng: -79.4094, priceRange: "$5,000–$15,000", budgetMin: 5000, budgetMax: 15000, packages: "Venue rental, ceremony & reception spaces, bridal suite, garden access", phone: "(416) 923-1171", website: "https://casaloma.ca", rating: 4.7 },
-  { id: 2, name: "The Fairmont Royal York", category: "venue", region: "Toronto", lat: 43.6477, lng: -79.3806, priceRange: "$8,000–$20,000+", budgetMin: 8000, budgetMax: 20000, packages: "Ballroom rental, catering, bridal suite, valet parking, wedding coordinator", phone: "(416) 368-2511", website: "https://fairmont.com/royal-york-toronto", rating: 4.6 },
-  { id: 3, name: "Candle Banquet Hall", category: "venue", region: "Mississauga", lat: 43.5890, lng: -79.6441, priceRange: "$3,500–$8,000", budgetMin: 3500, budgetMax: 8000, packages: "Hall rental, in-house catering, décor packages, DJ setup", phone: "(905) 564-9461", website: "https://candlebanquethall.com", rating: 4.3 },
-  { id: 4, name: "The Great Hall", category: "venue", region: "Toronto", lat: 43.6484, lng: -79.4197, priceRange: "$3,000–$8,000 (est. 100 guests)", budgetMin: 3000, budgetMax: 8000, packages: "Victorian venue, catering packages, ceremony + reception, bar service", phone: "(416) 792-1268", website: "https://thegreathall.ca", rating: 4.5 },
-  { id: 5, name: "Palais Royale", category: "venue", region: "Toronto", lat: 43.6362, lng: -79.4340, priceRange: "$4,000–$10,000", budgetMin: 4000, budgetMax: 10000, packages: "Lakefront venue, cocktail hour, reception, bridal suite, AV included", phone: "(416) 533-3553", website: "https://palaisroyale.ca", rating: 4.5 },
-  { id: 6, name: "Hazelton Manor", category: "venue", region: "Vaughan", lat: 43.8170, lng: -79.5350, priceRange: "$5,000–$12,000", budgetMin: 5000, budgetMax: 12000, packages: "All-inclusive catering, open bar, ceremony décor, bridal suite, valet", phone: "(905) 695-0635", website: "https://hazeltonmanor.com", rating: 4.4 },
-  { id: 7, name: "The Old Mill Toronto", category: "venue", region: "Toronto", lat: 43.6501, lng: -79.4938, priceRange: "$6,000–$15,000", budgetMin: 6000, budgetMax: 15000, packages: "Historic venue, catering, spa access, overnight suites, garden ceremony", phone: "(416) 236-2641", website: "https://oldmilltoronto.com", rating: 4.6 },
-  { id: 8, name: "Liuna Station", category: "venue", region: "Hamilton", lat: 43.2557, lng: -79.8711, priceRange: "$4,000–$10,000", budgetMin: 4000, budgetMax: 10000, packages: "Grand hall rental, catering, bar packages, ceremony space, AV", phone: "(905) 529-2566", website: "https://liunastation.com", rating: 4.7 },
-  { id: 9, name: "Spencer's at the Waterfront", category: "venue", region: "Burlington", lat: 43.3255, lng: -79.7990, priceRange: "$3,500–$9,000", budgetMin: 3500, budgetMax: 9000, packages: "Lakefront patio, in-house catering, ceremony + reception, bar service", phone: "(905) 633-7494", website: "https://spencers.ca", rating: 4.5 },
-  { id: 10, name: "Evergreen Brick Works", category: "venue", region: "Toronto", lat: 43.6846, lng: -79.3654, priceRange: "$4,500–$11,000", budgetMin: 4500, budgetMax: 11000, packages: "Industrial-chic venue, outdoor garden, catering kitchen, event coordinator", phone: "(416) 596-7670", website: "https://evergreen.ca", rating: 4.6 },
-  { id: 11, name: "Liberty Grand", category: "venue", region: "Toronto", lat: 43.6336, lng: -79.4153, priceRange: "$7,000–$18,000", budgetMin: 7000, budgetMax: 18000, packages: "Grand ballrooms, waterfront terrace, in-house catering, full AV, valet", phone: "(416) 260-1818", website: "https://libertygrand.com", rating: 4.5 },
-  { id: 12, name: "Bellvue Manor", category: "venue", region: "Vaughan", lat: 43.8097, lng: -79.5293, priceRange: "$4,500–$10,000", budgetMin: 4500, budgetMax: 10000, packages: "Banquet hall, catering, décor, ceremony setup, bridal suite", phone: "(905) 605-9000", website: "https://bellvuemanor.com", rating: 4.3 },
+  { id: 1, name: "Casa Loma", category: "venue", region: "Toronto", address: "1 Austin Terrace, Toronto, ON M5R 1X8", lat: 43.6780, lng: -79.4094, priceRange: "$5,000–$15,000", budgetMin: 5000, budgetMax: 15000, packages: "Venue rental, ceremony & reception spaces, bridal suite, garden access", phone: "(416) 923-1171", website: "https://casaloma.ca", rating: 4.7 },
+  { id: 2, name: "The Fairmont Royal York", category: "venue", region: "Toronto", address: "100 Front St W, Toronto, ON M5J 1E3", lat: 43.6477, lng: -79.3806, priceRange: "$8,000–$20,000+", budgetMin: 8000, budgetMax: 20000, packages: "Ballroom rental, catering, bridal suite, valet parking, wedding coordinator", phone: "(416) 368-2511", website: "https://fairmont.com/royal-york-toronto", rating: 4.6 },
+  { id: 3, name: "Candle Banquet Hall", category: "venue", region: "Mississauga", address: "1500 Royal Windsor Dr, Mississauga, ON L5J 1K7", lat: 43.5890, lng: -79.6441, priceRange: "$3,500–$8,000", budgetMin: 3500, budgetMax: 8000, packages: "Hall rental, in-house catering, décor packages, DJ setup", phone: "(905) 564-9461", website: "https://candlebanquethall.com", rating: 4.3 },
+  { id: 4, name: "The Great Hall", category: "venue", region: "Toronto", address: "1087 Queen St W, Toronto, ON M6J 1H3", lat: 43.6484, lng: -79.4197, priceRange: "$3,000–$8,000 (est. 100 guests)", budgetMin: 3000, budgetMax: 8000, packages: "Victorian venue, catering packages, ceremony + reception, bar service", phone: "(416) 792-1268", website: "https://thegreathall.ca", rating: 4.5 },
+  { id: 5, name: "Palais Royale", category: "venue", region: "Toronto", address: "1601 Lake Shore Blvd W, Toronto, ON M6K 3C1", lat: 43.6362, lng: -79.4340, priceRange: "$4,000–$10,000", budgetMin: 4000, budgetMax: 10000, packages: "Lakefront venue, cocktail hour, reception, bridal suite, AV included", phone: "(416) 533-3553", website: "https://palaisroyale.ca", rating: 4.5 },
+  { id: 6, name: "Hazelton Manor", category: "venue", region: "Vaughan", address: "99 Peelar Rd, Concord, ON L4K 1A7", lat: 43.8170, lng: -79.5350, priceRange: "$5,000–$12,000", budgetMin: 5000, budgetMax: 12000, packages: "All-inclusive catering, open bar, ceremony décor, bridal suite, valet", phone: "(905) 695-0635", website: "https://hazeltonmanor.com", rating: 4.4 },
+  { id: 7, name: "The Old Mill Toronto", category: "venue", region: "Toronto", address: "21 Old Mill Rd, Toronto, ON M8X 1G5", lat: 43.6501, lng: -79.4938, priceRange: "$6,000–$15,000", budgetMin: 6000, budgetMax: 15000, packages: "Historic venue, catering, spa access, overnight suites, garden ceremony", phone: "(416) 236-2641", website: "https://oldmilltoronto.com", rating: 4.6 },
+  { id: 8, name: "Liuna Station", category: "venue", region: "Hamilton", address: "360 James St N, Hamilton, ON L8L 1H5", lat: 43.2557, lng: -79.8711, priceRange: "$4,000–$10,000", budgetMin: 4000, budgetMax: 10000, packages: "Grand hall rental, catering, bar packages, ceremony space, AV", phone: "(905) 529-2566", website: "https://liunastation.com", rating: 4.7 },
+  { id: 9, name: "Spencer's at the Waterfront", category: "venue", region: "Burlington", address: "1340 Lakeshore Rd, Burlington, ON L7S 1B1", lat: 43.3255, lng: -79.7990, priceRange: "$3,500–$9,000", budgetMin: 3500, budgetMax: 9000, packages: "Lakefront patio, in-house catering, ceremony + reception, bar service", phone: "(905) 633-7494", website: "https://spencers.ca", rating: 4.5 },
+  { id: 10, name: "Evergreen Brick Works", category: "venue", region: "Toronto", address: "550 Bayview Ave, Toronto, ON M4W 3X8", lat: 43.6846, lng: -79.3654, priceRange: "$4,500–$11,000", budgetMin: 4500, budgetMax: 11000, packages: "Industrial-chic venue, outdoor garden, catering kitchen, event coordinator", phone: "(416) 596-7670", website: "https://evergreen.ca", rating: 4.6 },
+  { id: 11, name: "Liberty Grand", category: "venue", region: "Toronto", address: "25 British Columbia Rd, Toronto, ON M6K 3C3", lat: 43.6336, lng: -79.4153, priceRange: "$7,000–$18,000", budgetMin: 7000, budgetMax: 18000, packages: "Grand ballrooms, waterfront terrace, in-house catering, full AV, valet", phone: "(416) 260-1818", website: "https://libertygrand.com", rating: 4.5 },
+  { id: 12, name: "Bellvue Manor", category: "venue", region: "Vaughan", address: "8083 Jane St, Concord, ON L4K 5N9", lat: 43.8097, lng: -79.5293, priceRange: "$4,500–$10,000", budgetMin: 4500, budgetMax: 10000, packages: "Banquet hall, catering, décor, ceremony setup, bridal suite", phone: "(905) 605-9000", website: "https://bellvuemanor.com", rating: 4.3 },
 
   // === BAKERIES ===
-  { id: 20, name: "Finespun Cakes & Pastries", category: "bakery", region: "Toronto", lat: 43.6629, lng: -79.3370, priceRange: "$800–$3,000+", budgetMin: 800, budgetMax: 3000, packages: "Custom tiered wedding cakes, dessert tables, cupcake towers, tasting sessions", phone: "(416) 792-0311", website: "https://finespuncakes.com", rating: 4.9 },
-  { id: 21, name: "Olivia Yang Cake Studio", category: "bakery", region: "Toronto", lat: 43.6590, lng: -79.3480, priceRange: "$600–$2,500", budgetMin: 600, budgetMax: 2500, packages: "Custom wedding cakes, fondant & buttercream, floral sugar art, delivery", phone: "(647) 808-0373", website: "https://oliviayangcakes.com", rating: 4.9 },
-  { id: 22, name: "Serano Bakery", category: "bakery", region: "Toronto", lat: 43.6773, lng: -79.3504, priceRange: "$400–$1,500", budgetMin: 400, budgetMax: 1500, packages: "Wedding cakes, custom designs, Greek pastries, tiered cakes, sheet cakes", phone: "(416) 962-3874", website: "https://seranobakery.com", rating: 4.7 },
-  { id: 23, name: "The Rolling Pin", category: "bakery", region: "Toronto", lat: 43.6900, lng: -79.3000, priceRange: "$500–$2,000", budgetMin: 500, budgetMax: 2000, packages: "Wedding cakes, cupcake bouquets, pastry tables, custom colour matching", phone: "(416) 291-3737", website: "https://rollingpin.ca", rating: 4.6 },
-  { id: 24, name: "Daan Go Cake Lab", category: "bakery", region: "Markham", lat: 43.8561, lng: -79.3370, priceRange: "$500–$2,500", budgetMin: 500, budgetMax: 2500, packages: "Custom wedding cakes, macarons, East-meets-West designs, dessert bars", phone: "(905) 604-2866", website: "https://daango.com", rating: 4.7 },
-  { id: 25, name: "Patisserie Fleur", category: "bakery", region: "Markham", lat: 43.8515, lng: -79.3370, priceRange: "$400–$1,800", budgetMin: 400, budgetMax: 1800, packages: "French-inspired wedding cakes, mini cakes, afternoon tea, custom designs", phone: "(905) 415-8818", website: "https://patisseriefleur.ca", rating: 4.6 },
-  { id: 26, name: "La Rocca Creative Cakes", category: "bakery", region: "Toronto", lat: 43.7065, lng: -79.3540, priceRange: "$500–$2,500", budgetMin: 500, budgetMax: 2500, packages: "Custom tiered cakes, European pastry, gelato cakes, sheet cakes", phone: "(416) 962-4858", website: "https://laroccacakes.com", rating: 4.5 },
-  { id: 27, name: "Duo Pâtisserie & Café", category: "bakery", region: "Vaughan", lat: 43.8250, lng: -79.4720, priceRange: "$450–$2,000", budgetMin: 450, budgetMax: 2000, packages: "French-Japanese wedding cakes, viennoiseries, custom designs, chocolate", phone: "(905) 771-0881", website: "https://duopatisserie.com", rating: 4.6 },
+  { id: 20, name: "Finespun Cakes & Pastries", category: "bakery", region: "Toronto", address: "750 Pape Ave, Toronto, ON M4K 3T2", lat: 43.6629, lng: -79.3370, priceRange: "$800–$3,000+", budgetMin: 800, budgetMax: 3000, packages: "Custom tiered wedding cakes, dessert tables, cupcake towers, tasting sessions", phone: "(416) 792-0311", website: "https://finespuncakes.com", rating: 4.9 },
+  { id: 21, name: "Olivia Yang Cake Studio", category: "bakery", region: "Toronto", address: "Toronto, ON (studio — by appointment)", lat: 43.6590, lng: -79.3480, priceRange: "$600–$2,500", budgetMin: 600, budgetMax: 2500, packages: "Custom wedding cakes, fondant & buttercream, floral sugar art, delivery", phone: "(647) 808-0373", website: "https://oliviayangcakes.com", rating: 4.9 },
+  { id: 22, name: "Serano Bakery", category: "bakery", region: "Toronto", address: "6685 Kingston Rd, Scarborough, ON M1B 1G3", lat: 43.6773, lng: -79.3504, priceRange: "$400–$1,500", budgetMin: 400, budgetMax: 1500, packages: "Wedding cakes, custom designs, Greek pastries, tiered cakes, sheet cakes", phone: "(416) 962-3874", website: "https://seranobakery.com", rating: 4.7 },
+  { id: 23, name: "The Rolling Pin", category: "bakery", region: "Toronto", address: "3429 Yonge St, Toronto, ON M4N 2N1", lat: 43.6900, lng: -79.3000, priceRange: "$500–$2,000", budgetMin: 500, budgetMax: 2000, packages: "Wedding cakes, cupcake bouquets, pastry tables, custom colour matching", phone: "(416) 291-3737", website: "https://rollingpin.ca", rating: 4.6 },
+  { id: 24, name: "Daan Go Cake Lab", category: "bakery", region: "Markham", address: "5051 Highway 7, Unit 5A, Markham, ON L3R 1N3", lat: 43.8561, lng: -79.3370, priceRange: "$500–$2,500", budgetMin: 500, budgetMax: 2500, packages: "Custom wedding cakes, macarons, East-meets-West designs, dessert bars", phone: "(905) 604-2866", website: "https://daango.com", rating: 4.7 },
+  { id: 25, name: "Patisserie Fleur", category: "bakery", region: "Markham", address: "8788 Woodbine Ave, Markham, ON L3R 8C5", lat: 43.8515, lng: -79.3370, priceRange: "$400–$1,800", budgetMin: 400, budgetMax: 1800, packages: "French-inspired wedding cakes, mini cakes, afternoon tea, custom designs", phone: "(905) 415-8818", website: "https://patisseriefleur.ca", rating: 4.6 },
+  { id: 26, name: "La Rocca Creative Cakes", category: "bakery", region: "Toronto", address: "5125 Steeles Ave W, Toronto, ON M9L 1R5", lat: 43.7065, lng: -79.3540, priceRange: "$500–$2,500", budgetMin: 500, budgetMax: 2500, packages: "Custom tiered cakes, European pastry, gelato cakes, sheet cakes", phone: "(416) 962-4858", website: "https://laroccacakes.com", rating: 4.5 },
+  { id: 27, name: "Duo Pâtisserie & Café", category: "bakery", region: "Vaughan", address: "9981 Keele St, Vaughan, ON L6A 1R7", lat: 43.8250, lng: -79.4720, priceRange: "$450–$2,000", budgetMin: 450, budgetMax: 2000, packages: "French-Japanese wedding cakes, viennoiseries, custom designs, chocolate", phone: "(905) 771-0881", website: "https://duopatisserie.com", rating: 4.6 },
 
   // === FLORISTS ===
-  { id: 40, name: "Wild North Flowers", category: "florist", region: "Toronto", lat: 43.6620, lng: -79.3390, priceRange: "$350–$5,000+", budgetMin: 350, budgetMax: 5000, packages: "À la carte: bridal bouquet $300, bridesmaid $185, centerpieces $100–$300, GTA delivery", phone: "(416) 859-6853", website: "https://wildnorthflowers.com", rating: 4.8 },
-  { id: 41, name: "The Dulce Dwelling", category: "florist", region: "Toronto", lat: 43.6511, lng: -79.3610, priceRange: "$2,500–$10,000+", budgetMin: 2500, budgetMax: 10000, packages: "Full-service: bouquets, installations, ceremony arches, centerpieces, teardown", phone: "(647) 490-2210", website: "https://thedulcedwelling.com", rating: 4.9 },
-  { id: 42, name: "Dynasty Events & Florals", category: "florist", region: "Toronto", lat: 43.6470, lng: -79.3750, priceRange: "$4,000–$12,000+", budgetMin: 4000, budgetMax: 12000, packages: "Luxury full-service: custom bouquets, arches, ceiling installations, delivery + setup", phone: "(647) 995-9555", website: "https://dynastyfloral.com", rating: 4.8 },
-  { id: 43, name: "Bushel & Bloom", category: "florist", region: "Toronto", lat: 43.6700, lng: -79.3850, priceRange: "$50–$1,500", budgetMin: 50, budgetMax: 1500, packages: "Faux-flower rentals: bridal bouquet $50+, bridesmaid, centerpieces, budget-friendly", phone: "N/A", website: "https://bushelandbloom.com", rating: 4.7 },
-  { id: 44, name: "Harvest Hill Flowers", category: "florist", region: "Toronto Area", lat: 43.7200, lng: -79.4100, priceRange: "$80–$1,200", budgetMin: 80, budgetMax: 1200, packages: "Dried flower bouquets: bridal $80, bridesmaid $60, boutonniere $15, centerpieces $60–$100", phone: "N/A", website: "https://harvesthillflowers.com", rating: 4.8 },
-  { id: 45, name: "Floravue", category: "florist", region: "Vaughan", lat: 43.8100, lng: -79.5200, priceRange: "$2,000–$8,000", budgetMin: 2000, budgetMax: 8000, packages: "Full-service wedding florals: bouquets, décor, archways, table arrangements, delivery", phone: "(416) 305-5656", website: "https://floravue.ca", rating: 4.5 },
-  { id: 46, name: "Petals & Oak", category: "florist", region: "Toronto", lat: 43.6550, lng: -79.3650, priceRange: "$1,500–$6,000", budgetMin: 1500, budgetMax: 6000, packages: "Garden-style arrangements, bridal bouquets, ceremony décor, seasonal blooms", phone: "(647) 370-8970", website: "https://petalsandoak.com", rating: 5.0 },
-  { id: 47, name: "Bana Florist", category: "florist", region: "Toronto", lat: 43.6920, lng: -79.3980, priceRange: "$1,000–$5,000", budgetMin: 1000, budgetMax: 5000, packages: "Wedding packages, bridal bouquets, centerpieces, ceremony arches, delivery", phone: "(416) 625-2262", website: "https://banaflorist.com", rating: 4.4 },
+  { id: 40, name: "Wild North Flowers", category: "florist", region: "Toronto", address: "712 Pape Ave, Toronto, ON M4K 3S5", lat: 43.6620, lng: -79.3390, priceRange: "$350–$5,000+", budgetMin: 350, budgetMax: 5000, packages: "À la carte: bridal bouquet $300, bridesmaid $185, centerpieces $100–$300, GTA delivery", phone: "(416) 859-6853", website: "https://wildnorthflowers.com", rating: 4.8 },
+  { id: 41, name: "The Dulce Dwelling", category: "florist", region: "Toronto", address: "Toronto, ON (studio — by appointment)", lat: 43.6511, lng: -79.3610, priceRange: "$2,500–$10,000+", budgetMin: 2500, budgetMax: 10000, packages: "Full-service: bouquets, installations, ceremony arches, centerpieces, teardown", phone: "(647) 490-2210", website: "https://thedulcedwelling.com", rating: 4.9 },
+  { id: 42, name: "Dynasty Events & Florals", category: "florist", region: "Toronto", address: "Toronto, ON (studio — by appointment)", lat: 43.6470, lng: -79.3750, priceRange: "$4,000–$12,000+", budgetMin: 4000, budgetMax: 12000, packages: "Luxury full-service: custom bouquets, arches, ceiling installations, delivery + setup", phone: "(647) 995-9555", website: "https://dynastyfloral.com", rating: 4.8 },
+  { id: 43, name: "Bushel & Bloom", category: "florist", region: "Toronto", address: "Toronto, ON (online + delivery)", lat: 43.6700, lng: -79.3850, priceRange: "$50–$1,500", budgetMin: 50, budgetMax: 1500, packages: "Faux-flower rentals: bridal bouquet $50+, bridesmaid, centerpieces, budget-friendly", phone: "N/A", website: "https://bushelandbloom.com", rating: 4.7 },
+  { id: 44, name: "Harvest Hill Flowers", category: "florist", region: "Toronto Area", address: "Greater Toronto Area (delivery only)", lat: 43.7200, lng: -79.4100, priceRange: "$80–$1,200", budgetMin: 80, budgetMax: 1200, packages: "Dried flower bouquets: bridal $80, bridesmaid $60, boutonniere $15, centerpieces $60–$100", phone: "N/A", website: "https://harvesthillflowers.com", rating: 4.8 },
+  { id: 45, name: "Floravue", category: "florist", region: "Vaughan", address: "Vaughan, ON (studio — by appointment)", lat: 43.8100, lng: -79.5200, priceRange: "$2,000–$8,000", budgetMin: 2000, budgetMax: 8000, packages: "Full-service wedding florals: bouquets, décor, archways, table arrangements, delivery", phone: "(416) 305-5656", website: "https://floravue.ca", rating: 4.5 },
+  { id: 46, name: "Petals & Oak", category: "florist", region: "Toronto", address: "Toronto, ON (studio — by appointment)", lat: 43.6550, lng: -79.3650, priceRange: "$1,500–$6,000", budgetMin: 1500, budgetMax: 6000, packages: "Garden-style arrangements, bridal bouquets, ceremony décor, seasonal blooms", phone: "(647) 370-8970", website: "https://petalsandoak.com", rating: 5.0 },
+  { id: 47, name: "Bana Florist", category: "florist", region: "Toronto", address: "874 Eglinton Ave W, Toronto, ON M6C 2B6", lat: 43.6920, lng: -79.3980, priceRange: "$1,000–$5,000", budgetMin: 1000, budgetMax: 5000, packages: "Wedding packages, bridal bouquets, centerpieces, ceremony arches, delivery", phone: "(416) 625-2262", website: "https://banaflorist.com", rating: 4.4 },
 ];
 
 const BUDGET_PRESETS = [
@@ -142,9 +142,14 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
           )}
         </div>
       </div>
-      <div style={{ fontSize: 12, color: "#999", marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ fontSize: 12, color: "#999", marginBottom: 2, fontFamily: "'DM Sans', sans-serif" }}>
         📍 {vendor.region}
       </div>
+      {vendor.address && (
+        <div style={{ fontSize: 11, color: "#777", marginBottom: 6, marginLeft: 16, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
+          {vendor.address}
+        </div>
+      )}
       <StarRating rating={vendor.rating} />
       {isSelected && (
         <div style={{
@@ -155,7 +160,7 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
           <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.6, margin: "0 0 12px", fontFamily: "'DM Sans', sans-serif" }}>
             <strong style={{ color: c.text }}>Packages:</strong> {vendor.packages}
           </p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             {vendor.phone !== "N/A" && (
               <span style={{ fontSize: 12, color: "#aaa", fontFamily: "'DM Sans', sans-serif" }}>📞 {vendor.phone}</span>
             )}
@@ -170,6 +175,18 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
               }}
             >
               🔗 Visit Website →
+            </a>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vendor.address || `${vendor.name} ${vendor.region}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                fontSize: 12, color: c.text, textDecoration: "none",
+                fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+              }}
+            >
+              🧭 Directions →
             </a>
           </div>
         </div>
@@ -472,6 +489,9 @@ export default function WeddingVendorPortal() {
                           {v.name}
                         </div>
                         <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>📍 {v.region}</div>
+                        {v.address && (
+                          <div style={{ fontSize: 11, color: "#777", marginBottom: 4, marginLeft: 16, lineHeight: 1.4 }}>{v.address}</div>
+                        )}
                         <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{v.priceRange}</div>
                       </div>
                     </Popup>
