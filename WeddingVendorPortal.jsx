@@ -58,7 +58,7 @@ const CATEGORIES = [
 ];
 
 const CAT_COLORS = {
-  venue: { bg: "#2D2926", text: "#D4AF37", border: "#D4AF37" },
+  venue: { bg: "#2D2926", text: "#C9A063", border: "#C9A063" },
   bakery: { bg: "#3E2723", text: "#FFAB91", border: "#FFAB91" },
   florist: { bg: "#1B3A2D", text: "#A8E6CF", border: "#A8E6CF" },
 };
@@ -67,9 +67,9 @@ function StarRating({ rating }) {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.3;
   return (
-    <span style={{ color: "#D4AF37", fontSize: 13, letterSpacing: 1 }}>
+    <span style={{ color: "#C9A063", fontSize: 13, letterSpacing: 1 }}>
       {"★".repeat(full)}{half ? "½" : ""}
-      <span style={{ color: "#555", marginLeft: 4, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>{rating}</span>
+      <span style={{ color: "#5b5246", marginLeft: 4, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>{rating}</span>
     </span>
   );
 }
@@ -83,8 +83,8 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
     <div
       onClick={onClick}
       style={{
-        background: isSelected ? c.bg : "#1a1a1a",
-        border: `1.5px solid ${isSelected ? c.border : "#2a2a2a"}`,
+        background: isSelected ? c.bg : "#1c1812",
+        border: `1.5px solid ${isSelected ? c.border : "#2b261d"}`,
         borderRadius: 14,
         padding: "18px 20px",
         cursor: "pointer",
@@ -142,11 +142,11 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
           )}
         </div>
       </div>
-      <div style={{ fontSize: 12, color: "#999", marginBottom: 2, fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ fontSize: 12, color: "#9c9385", marginBottom: 2, fontFamily: "'DM Sans', sans-serif" }}>
         📍 {vendor.region}
       </div>
       {vendor.address && (
-        <div style={{ fontSize: 11, color: "#777", marginBottom: 6, marginLeft: 16, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
+        <div style={{ fontSize: 11, color: "#7a7165", marginBottom: 6, marginLeft: 16, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
           {vendor.address}
         </div>
       )}
@@ -157,12 +157,12 @@ function VendorCard({ vendor, isSelected, onClick, activeBudget }) {
           borderTop: `1px solid ${c.border}22`,
           animation: "fadeIn 0.3s ease",
         }}>
-          <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.6, margin: "0 0 12px", fontFamily: "'DM Sans', sans-serif" }}>
+          <p style={{ fontSize: 13, color: "#c9c1b3", lineHeight: 1.6, margin: "0 0 12px", fontFamily: "'DM Sans', sans-serif" }}>
             <strong style={{ color: c.text }}>Packages:</strong> {vendor.packages}
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             {vendor.phone !== "N/A" && (
-              <span style={{ fontSize: 12, color: "#aaa", fontFamily: "'DM Sans', sans-serif" }}>📞 {vendor.phone}</span>
+              <span style={{ fontSize: 12, color: "#ada69a", fontFamily: "'DM Sans', sans-serif" }}>📞 {vendor.phone}</span>
             )}
             <a
               href={vendor.website}
@@ -202,7 +202,7 @@ function makePinIcon(color, selected) {
     html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
       background:${color};
-      border:2.5px solid ${selected ? "#fff" : "#0e0e0e"};
+      border:2.5px solid ${selected ? "#fff" : "#14110d"};
       box-shadow:${selected ? `0 0 16px ${color}cc, 0 0 0 4px ${color}33` : "0 2px 6px rgba(0,0,0,0.5)"};
       transition:all 0.2s ease;
     "></div>`,
@@ -261,7 +261,7 @@ export default function WeddingVendorPortal() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#0e0e0e", color: "#f0ece2",
+      minHeight: "100vh", background: "#14110d", color: "#f0ece2",
       fontFamily: "'DM Sans', sans-serif",
     }}>
       <style>{`
@@ -269,42 +269,42 @@ export default function WeddingVendorPortal() {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #1a1a1a; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: #1c1812; }
+        ::-webkit-scrollbar-thumb { background: #3b342a; border-radius: 3px; }
 
         /* Leaflet dark-theme overrides */
-        .leaflet-container { background: #0a0a0a !important; font-family: 'DM Sans', sans-serif; }
+        .leaflet-container { background: #14110d !important; font-family: 'DM Sans', sans-serif; }
         .leaflet-control-zoom a {
-          background: #1a1a1a !important; color: #D4AF37 !important;
-          border: 1px solid #2a2a2a !important;
+          background: #1c1812 !important; color: #C9A063 !important;
+          border: 1px solid #2b261d !important;
         }
-        .leaflet-control-zoom a:hover { background: #2a2a2a !important; }
+        .leaflet-control-zoom a:hover { background: #2b261d !important; }
         .leaflet-control-attribution {
-          background: rgba(17,17,17,0.85) !important; color: #888 !important;
+          background: rgba(24,20,16,0.85) !important; color: #8a8175 !important;
           backdrop-filter: blur(6px);
         }
-        .leaflet-control-attribution a { color: #D4AF37 !important; }
+        .leaflet-control-attribution a { color: #C9A063 !important; }
         .leaflet-popup-content-wrapper {
-          background: #f0ece2 !important; color: #111 !important;
+          background: #f0ece2 !important; color: #1a160f !important;
           border-radius: 10px !important;
           box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
         }
         .leaflet-popup-tip { background: #f0ece2 !important; }
-        .leaflet-popup-close-button { color: #888 !important; }
+        .leaflet-popup-close-button { color: #8a8175 !important; }
         .vendor-pin { background: transparent !important; border: none !important; }
       `}</style>
 
       {/* HEADER */}
       <header style={{
         padding: "28px 32px 20px",
-        borderBottom: "1px solid #1f1f1f",
-        background: "linear-gradient(180deg, #141210 0%, #0e0e0e 100%)",
+        borderBottom: "1px solid #221d16",
+        background: "linear-gradient(180deg, #181410 0%, #14110d 100%)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
           <div>
             <div style={{
               fontSize: 10, letterSpacing: 4, textTransform: "uppercase",
-              color: "#D4AF37", fontWeight: 700, marginBottom: 4,
+              color: "#C9A063", fontWeight: 700, marginBottom: 4,
             }}>
               Golden Glance Studio Presents
             </div>
@@ -313,15 +313,15 @@ export default function WeddingVendorPortal() {
               fontWeight: 300, letterSpacing: 1, color: "#f0ece2",
               lineHeight: 1.2,
             }}>
-              GTA Wedding <span style={{ fontStyle: "italic", fontWeight: 600, color: "#D4AF37" }}>Vendor Directory</span>
+              GTA Wedding <span style={{ fontStyle: "italic", fontWeight: 600, color: "#C9A063" }}>Vendor Directory</span>
             </h1>
-            <p style={{ fontSize: 13, color: "#777", marginTop: 4 }}>
+            <p style={{ fontSize: 13, color: "#7a7165", marginTop: 4 }}>
               Venues, Bakeries & Florists across the Greater Toronto Area & Ontario
             </p>
           </div>
 
           {/* VIEW TOGGLE */}
-          <div style={{ display: "flex", gap: 4, background: "#1a1a1a", borderRadius: 10, padding: 3 }}>
+          <div style={{ display: "flex", gap: 4, background: "#1c1812", borderRadius: 10, padding: 3 }}>
             {[
               { key: "split", label: "Split" },
               { key: "map", label: "Map" },
@@ -331,8 +331,8 @@ export default function WeddingVendorPortal() {
                 key={v.key}
                 onClick={() => setView(v.key)}
                 style={{
-                  background: view === v.key ? "#D4AF37" : "transparent",
-                  color: view === v.key ? "#111" : "#888",
+                  background: view === v.key ? "#C9A063" : "transparent",
+                  color: view === v.key ? "#1a160f" : "#8a8175",
                   border: "none", borderRadius: 8, padding: "6px 16px",
                   fontSize: 12, fontWeight: 600, cursor: "pointer",
                   fontFamily: "'DM Sans', sans-serif",
@@ -352,9 +352,9 @@ export default function WeddingVendorPortal() {
               key={cat.key}
               onClick={() => setCategory(cat.key)}
               style={{
-                background: category === cat.key ? "#D4AF3722" : "#1a1a1a",
-                border: `1.5px solid ${category === cat.key ? "#D4AF37" : "#2a2a2a"}`,
-                color: category === cat.key ? "#D4AF37" : "#888",
+                background: category === cat.key ? "#C9A06322" : "#1c1812",
+                border: `1.5px solid ${category === cat.key ? "#C9A063" : "#2b261d"}`,
+                color: category === cat.key ? "#C9A063" : "#8a8175",
                 borderRadius: 20, padding: "7px 16px", fontSize: 12,
                 fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                 transition: "all 0.2s ease",
@@ -368,8 +368,8 @@ export default function WeddingVendorPortal() {
             value={region}
             onChange={e => setRegion(e.target.value)}
             style={{
-              background: "#1a1a1a", border: "1.5px solid #2a2a2a",
-              color: "#ccc", borderRadius: 20, padding: "7px 16px",
+              background: "#1c1812", border: "1.5px solid #2b261d",
+              color: "#c9c1b3", borderRadius: 20, padding: "7px 16px",
               fontSize: 12, fontFamily: "'DM Sans', sans-serif",
               cursor: "pointer", outline: "none",
             }}
@@ -383,14 +383,14 @@ export default function WeddingVendorPortal() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
-              background: "#1a1a1a", border: "1.5px solid #2a2a2a",
-              color: "#ccc", borderRadius: 20, padding: "7px 16px",
+              background: "#1c1812", border: "1.5px solid #2b261d",
+              color: "#c9c1b3", borderRadius: 20, padding: "7px 16px",
               fontSize: 12, fontFamily: "'DM Sans', sans-serif",
               outline: "none", minWidth: 160, flex: "0 1 auto",
             }}
           />
 
-          <span style={{ fontSize: 12, color: "#666", marginLeft: 4 }}>
+          <span style={{ fontSize: 12, color: "#6a6155", marginLeft: 4 }}>
             {filtered.length} vendor{filtered.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -399,7 +399,7 @@ export default function WeddingVendorPortal() {
         <div style={{
           marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center",
         }}>
-          <span style={{ fontSize: 11, color: "#666", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>
+          <span style={{ fontSize: 11, color: "#6a6155", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>
             💰 Budget:
           </span>
           {BUDGET_PRESETS.map((bp, i) => (
@@ -407,9 +407,9 @@ export default function WeddingVendorPortal() {
               key={i}
               onClick={() => setBudget(i)}
               style={{
-                background: budget === i ? "#D4AF3722" : "#1a1a1a",
-                border: `1.5px solid ${budget === i ? "#D4AF37" : "#2a2a2a"}`,
-                color: budget === i ? "#D4AF37" : "#888",
+                background: budget === i ? "#C9A06322" : "#1c1812",
+                border: `1.5px solid ${budget === i ? "#C9A063" : "#2b261d"}`,
+                color: budget === i ? "#C9A063" : "#8a8175",
                 borderRadius: 20, padding: "5px 14px", fontSize: 11,
                 fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                 transition: "all 0.2s ease",
@@ -422,8 +422,8 @@ export default function WeddingVendorPortal() {
             <button
               onClick={() => setBudget(0)}
               style={{
-                background: "transparent", border: "1px solid #333",
-                color: "#666", borderRadius: 20, padding: "5px 12px",
+                background: "transparent", border: "1px solid #3b342a",
+                color: "#6a6155", borderRadius: 20, padding: "5px 12px",
                 fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
               }}
             >
@@ -443,16 +443,16 @@ export default function WeddingVendorPortal() {
         {view !== "list" && (
           <div style={{
             flex: view === "map" ? 1 : "0 0 55%",
-            background: "#0a0a0a",
+            background: "#14110d",
             position: "relative",
-            borderRight: view === "split" ? "1px solid #1f1f1f" : "none",
+            borderRight: view === "split" ? "1px solid #221d16" : "none",
             overflow: "hidden",
           }}>
             <MapContainer
               center={[43.65, -79.4]}
               zoom={10}
               scrollWheelZoom={true}
-              style={{ width: "100%", height: "100%", background: "#0a0a0a" }}
+              style={{ width: "100%", height: "100%", background: "#14110d" }}
               zoomControl={true}
             >
               <TileLayer
@@ -484,13 +484,13 @@ export default function WeddingVendorPortal() {
                         </div>
                         <div style={{
                           fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: 16, fontWeight: 600, color: "#111", marginBottom: 4,
+                          fontSize: 16, fontWeight: 600, color: "#1a160f", marginBottom: 4,
                         }}>
                           {v.name}
                         </div>
-                        <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>📍 {v.region}</div>
+                        <div style={{ fontSize: 12, color: "#5b5246", marginBottom: 2 }}>📍 {v.region}</div>
                         {v.address && (
-                          <div style={{ fontSize: 11, color: "#777", marginBottom: 4, marginLeft: 16, lineHeight: 1.4 }}>{v.address}</div>
+                          <div style={{ fontSize: 11, color: "#7a7165", marginBottom: 4, marginLeft: 16, lineHeight: 1.4 }}>{v.address}</div>
                         )}
                         <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{v.priceRange}</div>
                       </div>
@@ -503,15 +503,15 @@ export default function WeddingVendorPortal() {
             {/* Legend */}
             <div style={{
               position: "absolute", bottom: 16, left: 16,
-              background: "rgba(17,17,17,0.92)", backdropFilter: "blur(10px)",
-              border: "1px solid #222", borderRadius: 10,
+              background: "rgba(24,20,16,0.92)", backdropFilter: "blur(10px)",
+              border: "1px solid #2b261d", borderRadius: 10,
               padding: "10px 14px", display: "flex", gap: 14,
               zIndex: 500,
             }}>
               {Object.entries(CAT_COLORS).map(([key, c]) => (
                 <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: c.border }} />
-                  <span style={{ fontSize: 11, color: "#888", textTransform: "capitalize" }}>{key}</span>
+                  <span style={{ fontSize: 11, color: "#8a8175", textTransform: "capitalize" }}>{key}</span>
                 </div>
               ))}
             </div>
@@ -520,8 +520,8 @@ export default function WeddingVendorPortal() {
               <div style={{
                 position: "absolute", inset: 0, display: "flex",
                 alignItems: "center", justifyContent: "center",
-                color: "#888", fontSize: 14, fontStyle: "italic",
-                background: "rgba(10,10,10,0.5)", pointerEvents: "none",
+                color: "#8a8175", fontSize: 14, fontStyle: "italic",
+                background: "rgba(20,17,13,0.5)", pointerEvents: "none",
                 zIndex: 600,
               }}>
                 No vendors match your filters
@@ -537,7 +537,7 @@ export default function WeddingVendorPortal() {
             overflowY: "auto", padding: "16px 20px",
           }}>
             {filtered.length === 0 && (
-              <div style={{ color: "#555", fontSize: 14, fontStyle: "italic", textAlign: "center", marginTop: 60 }}>
+              <div style={{ color: "#5b5246", fontSize: 14, fontStyle: "italic", textAlign: "center", marginTop: 60 }}>
                 No vendors match your filters. Try adjusting the category or region.
               </div>
             )}
@@ -556,8 +556,8 @@ export default function WeddingVendorPortal() {
 
       {/* FOOTER */}
       <div style={{
-        padding: "12px 32px", borderTop: "1px solid #1f1f1f",
-        fontSize: 11, color: "#444", textAlign: "center",
+        padding: "12px 32px", borderTop: "1px solid #221d16",
+        fontSize: 11, color: "#4d4538", textAlign: "center",
         fontFamily: "'DM Sans', sans-serif",
       }}>
         Curated by Golden Glance Studio · Prices are approximate and may vary by season · Always confirm directly with vendors
