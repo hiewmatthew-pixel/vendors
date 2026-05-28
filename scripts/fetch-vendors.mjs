@@ -155,10 +155,17 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const photoDir = path.join(root, "public", "vendor-photos");
 mkdirSync(photoDir, { recursive: true });
 
-async function downloadOne(photoName, dest) {
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function downloadOne(photoName, dest, attempt = 0) {
   if (existsSync(dest)) return true; // already downloaded on a previous run
   const url = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${PHOTO_WIDTH}&key=${apiKey}`;
   const res = await fetch(url); // follows redirect to the image bytes
+  if (res.status === 429 && attempt < 5) {
+    // Rate limited — exponential backoff (0.8s, 1.6s, 3.2s, ...) then retry
+    await sleep(800 * 2 ** attempt);
+    return downloadOne(photoName, dest, attempt + 1);
+  }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
   return true;
@@ -183,7 +190,8 @@ async function downloadVendorPhotos(vendor) {
 const withPhotos = vendors.filter(v => v.photoNames.length);
 const totalPhotos = withPhotos.reduce((s, v) => s + v.photoNames.length, 0);
 console.log(`\nDownloading up to ${totalPhotos} photos for ${withPhotos.length} vendors (max ${PHOTO_WIDTH}px)...`);
-const CONCURRENCY = 8;
+// Keep concurrency modest to avoid the Places Photo API rate limit (429).
+const CONCURRENCY = 3;
 for (let i = 0; i < withPhotos.length; i += CONCURRENCY) {
   await Promise.all(withPhotos.slice(i, i + CONCURRENCY).map(downloadVendorPhotos));
   process.stdout.write(`\r  ${Math.min(i + CONCURRENCY, withPhotos.length)}/${withPhotos.length} vendors   `);

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import VENDORS from "./vendor-data.json";
@@ -462,6 +462,125 @@ function FlyToSelected({ selectedVendor }) {
   return null;
 }
 
+// Cap how many pins render at once so a zoomed-out view stays smooth.
+const MAX_MAP_MARKERS = 140;
+
+function VendorPin({ vendor, isSelected, onSelect, onImageClick, isFavourite, onToggleFavourite, inRoute, onToggleRoute }) {
+  const c = CAT_COLORS[vendor.category];
+  const thumb = vendorPhotos(vendor)[0];
+  return (
+    <Marker
+      position={[vendor.lat, vendor.lng]}
+      icon={makePinIcon(c.border, isSelected)}
+      zIndexOffset={isSelected ? 1000 : 0}
+      eventHandlers={{ click: () => onSelect(vendor.id) }}
+    >
+      {/* Hover peek */}
+      <Tooltip direction="top" offset={[0, -8]} opacity={1} className="vendor-peek">
+        <div style={{ width: 180 }}>
+          {thumb && (
+            <img src={thumb} alt={vendor.name}
+              style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
+          )}
+          <div style={{ padding: "6px 9px" }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: c.border }}>
+              {vendor.category}
+            </div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14, fontWeight: 600, color: "#f0ece2", lineHeight: 1.2 }}>
+              {vendor.name}
+            </div>
+            <div style={{ fontSize: 11, color: "#c9c1b3", marginTop: 2 }}>
+              {vendor.rating ? `★ ${vendor.rating.toFixed(1)}` : ""}
+              {vendor.reviewCount ? ` (${vendor.reviewCount.toLocaleString()})` : ""}
+              {vendor.priceLevel != null ? ` · ${priceSymbol(vendor.priceLevel)}` : ""}
+            </div>
+          </div>
+        </div>
+      </Tooltip>
+
+      {/* Click info card */}
+      <Popup>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 180 }}>
+          {thumb && (
+            <img src={thumb} alt={vendor.name} onClick={() => onImageClick(vendor)}
+              style={{ width: "100%", height: 96, objectFit: "cover", borderRadius: 8, marginBottom: 8, cursor: "zoom-in", display: "block" }} />
+          )}
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color: c.text, marginBottom: 4 }}>
+            {vendor.category}
+          </div>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 600, color: "#1a160f", marginBottom: 4 }}>
+            {vendor.name}
+          </div>
+          <div style={{ fontSize: 12, color: "#5b5246", marginBottom: 2 }}>📍 {vendor.region}</div>
+          {vendor.address && (
+            <div style={{ fontSize: 11, color: "#7a7165", marginBottom: 4, marginLeft: 16, lineHeight: 1.4 }}>{vendor.address}</div>
+          )}
+          <div style={{ fontSize: 13, fontWeight: 700, color: c.text, letterSpacing: 1 }}>
+            {vendor.priceLevel != null ? priceSymbol(vendor.priceLevel) : null}
+            {vendor.rating ? <span style={{ marginLeft: vendor.priceLevel != null ? 8 : 0, color: "#5b5246", fontWeight: 500 }}>★ {vendor.rating.toFixed(1)}{vendor.reviewCount ? ` (${vendor.reviewCount.toLocaleString()})` : ""}</span> : null}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button onClick={() => onToggleFavourite(vendor.id)} style={{
+              flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 7, padding: "5px 8px",
+              background: "transparent", border: `1px solid ${isFavourite ? "#ff6b81" : "#ccc"}`,
+              color: isFavourite ? "#ff6b81" : "#555",
+            }}>
+              {isFavourite ? "♥ Saved" : "♡ Save"}
+            </button>
+            <button onClick={() => onToggleRoute(vendor)} style={{
+              flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 7, padding: "5px 8px",
+              background: inRoute ? c.border : "transparent", border: `1px solid ${c.border}`,
+              color: inRoute ? "#14110d" : c.text,
+            }}>
+              {inRoute ? "✓ Route" : "📏 Route"}
+            </button>
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+// Renders only the markers within the current map viewport (capped),
+// re-evaluating as the user pans/zooms. Keeps the map fast with 800+ vendors.
+function ViewportMarkers({ vendors, selected, onSelect, onImageClick, favourites, onToggleFavourite, routePoints, onToggleRoute, onCount }) {
+  const map = useMap();
+  const [bounds, setBounds] = useState(() => map.getBounds());
+  useMapEvents({
+    moveend: () => setBounds(map.getBounds()),
+    zoomend: () => setBounds(map.getBounds()),
+  });
+
+  const inView = useMemo(
+    () => (bounds ? vendors.filter(v => bounds.contains([v.lat, v.lng])) : []),
+    [vendors, bounds]
+  );
+  const visible = useMemo(() => {
+    if (inView.length <= MAX_MAP_MARKERS) return inView;
+    return [...inView].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, MAX_MAP_MARKERS);
+  }, [inView]);
+
+  useEffect(() => { onCount?.(visible.length, inView.length); }, [visible.length, inView.length, onCount]);
+
+  return (
+    <>
+      {visible.map(v => (
+        <VendorPin
+          key={v.id}
+          vendor={v}
+          isSelected={selected === v.id}
+          onSelect={onSelect}
+          onImageClick={onImageClick}
+          isFavourite={favourites.includes(v.id)}
+          onToggleFavourite={onToggleFavourite}
+          inRoute={routePoints.some(r => r.id === v.id)}
+          onToggleRoute={onToggleRoute}
+        />
+      ))}
+    </>
+  );
+}
+
 export default function WeddingVendorPortal() {
   const [categories, setCategories] = useState([]); // empty = all categories
   const [regions, setRegions] = useState([]);       // empty = all regions
@@ -473,6 +592,9 @@ export default function WeddingVendorPortal() {
   const [routePoints, setRoutePoints] = useState([]); // up to 2 vendors
   const [routePath, setRoutePath] = useState(null);   // { coords, km, min } from OSRM
   const [routeLoading, setRouteLoading] = useState(false);
+  const [mapCount, setMapCount] = useState({ shown: 0, inView: 0 });
+
+  const handleMapCount = useCallback((shown, inView) => setMapCount({ shown, inView }), []);
   const [favourites, setFavourites] = useState(() => {
     try { return JSON.parse(localStorage.getItem(FAVE_KEY) || "[]"); } catch { return []; }
   });
@@ -611,6 +733,14 @@ export default function WeddingVendorPortal() {
         .leaflet-popup-tip { background: #f0ece2 !important; }
         .leaflet-popup-close-button { color: #8a8175 !important; }
         .vendor-pin { background: transparent !important; border: none !important; }
+        /* Hover peek tooltip — dark themed, image flush to edges */
+        .leaflet-tooltip.vendor-peek {
+          background: #1c1812 !important; border: 1px solid #C9A06355 !important;
+          border-radius: 10px !important; padding: 0 !important; overflow: hidden !important;
+          box-shadow: 0 8px 28px rgba(0,0,0,0.6) !important; color: #f0ece2 !important;
+          white-space: normal !important;
+        }
+        .leaflet-tooltip.vendor-peek::before { display: none !important; }
       `}</style>
 
       {/* HEADER */}
@@ -843,74 +973,31 @@ export default function WeddingVendorPortal() {
                     : { color: "#C9A063", weight: 3, dashArray: "8 8", opacity: 0.6 }}
                 />
               )}
-              {filtered.map(v => {
-                const c = CAT_COLORS[v.category];
-                const isSel = selected === v.id;
-                return (
-                  <Marker
-                    key={v.id}
-                    position={[v.lat, v.lng]}
-                    icon={makePinIcon(c.border, isSel)}
-                    zIndexOffset={isSel ? 1000 : 0}
-                    eventHandlers={{ click: () => handleSelect(v.id) }}
-                  >
-                    <Popup>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 180 }}>
-                        {vendorPhotos(v)[0] && (
-                          <img
-                            src={vendorPhotos(v)[0]}
-                            alt={v.name}
-                            onClick={() => setLightboxVendor(v)}
-                            style={{
-                              width: "100%", height: 96, objectFit: "cover",
-                              borderRadius: 8, marginBottom: 8, cursor: "zoom-in", display: "block",
-                            }}
-                          />
-                        )}
-                        <div style={{
-                          fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                          letterSpacing: 2, color: c.text, marginBottom: 4,
-                        }}>
-                          {v.category}
-                        </div>
-                        <div style={{
-                          fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: 16, fontWeight: 600, color: "#1a160f", marginBottom: 4,
-                        }}>
-                          {v.name}
-                        </div>
-                        <div style={{ fontSize: 12, color: "#5b5246", marginBottom: 2 }}>📍 {v.region}</div>
-                        {v.address && (
-                          <div style={{ fontSize: 11, color: "#7a7165", marginBottom: 4, marginLeft: 16, lineHeight: 1.4 }}>{v.address}</div>
-                        )}
-                        <div style={{ fontSize: 13, fontWeight: 700, color: c.text, letterSpacing: 1 }}>
-                          {v.priceLevel != null ? priceSymbol(v.priceLevel) : null}
-                          {v.rating ? <span style={{ marginLeft: v.priceLevel != null ? 8 : 0, color: "#5b5246", fontWeight: 500 }}>★ {v.rating.toFixed(1)}{v.reviewCount ? ` (${v.reviewCount.toLocaleString()})` : ""}</span> : null}
-                        </div>
-                        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                          <button onClick={() => toggleFavourite(v.id)} style={{
-                            flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 7, padding: "5px 8px",
-                            background: "transparent",
-                            border: `1px solid ${favourites.includes(v.id) ? "#ff6b81" : "#ccc"}`,
-                            color: favourites.includes(v.id) ? "#ff6b81" : "#555",
-                          }}>
-                            {favourites.includes(v.id) ? "♥ Saved" : "♡ Save"}
-                          </button>
-                          <button onClick={() => toggleRoute(v)} style={{
-                            flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 7, padding: "5px 8px",
-                            background: routePoints.some(r => r.id === v.id) ? c.border : "transparent",
-                            border: `1px solid ${c.border}`,
-                            color: routePoints.some(r => r.id === v.id) ? "#14110d" : c.text,
-                          }}>
-                            {routePoints.some(r => r.id === v.id) ? "✓ Route" : "📏 Route"}
-                          </button>
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                );
-              })}
+              <ViewportMarkers
+                vendors={filtered}
+                selected={selected}
+                onSelect={handleSelect}
+                onImageClick={setLightboxVendor}
+                favourites={favourites}
+                onToggleFavourite={toggleFavourite}
+                routePoints={routePoints}
+                onToggleRoute={toggleRoute}
+                onCount={handleMapCount}
+              />
             </MapContainer>
+
+            {/* Map count / zoom hint */}
+            <div style={{
+              position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
+              zIndex: 500, background: "rgba(24,20,16,0.92)", backdropFilter: "blur(8px)",
+              border: "1px solid #2b261d", borderRadius: 20, padding: "5px 14px",
+              fontSize: 11, color: "#c9c1b3", fontFamily: "'DM Sans', sans-serif",
+              pointerEvents: "none", whiteSpace: "nowrap",
+            }}>
+              {mapCount.inView > mapCount.shown
+                ? `Showing top ${mapCount.shown} of ${mapCount.inView} here · zoom in for more`
+                : `${mapCount.shown} vendor${mapCount.shown !== 1 ? "s" : ""} in view`}
+            </div>
 
             {/* Legend */}
             <div style={{
