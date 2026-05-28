@@ -204,7 +204,9 @@ export default function WeddingVendorPortal() {
   const [search, setSearch] = useState("");
   const [priceLevel, setPriceLevel] = useState(null);
 
-  const filtered = useMemo(() => {
+  // Pre-filtered set (category/region/search) — used for both the list
+  // and for computing per-price-level counts on the filter chips.
+  const preFiltered = useMemo(() => {
     return VENDORS.filter(v => {
       if (category !== "all" && v.category !== category) return false;
       if (region !== "All Regions" && v.region !== region) return false;
@@ -213,10 +215,29 @@ export default function WeddingVendorPortal() {
         const haystack = `${v.name} ${v.address || ""} ${(v.types || []).join(" ")}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
-      if (priceLevel != null && v.priceLevel !== priceLevel) return false;
       return true;
     });
-  }, [category, region, search, priceLevel]);
+  }, [category, region, search]);
+
+  const priceLevelCounts = useMemo(() => {
+    const counts = { null: 0, 1: 0, 2: 0, 3: 0, 4: 0, any: preFiltered.length };
+    for (const v of preFiltered) {
+      counts[v.priceLevel ?? "null"] = (counts[v.priceLevel ?? "null"] || 0) + 1;
+    }
+    return counts;
+  }, [preFiltered]);
+
+  const filtered = useMemo(() => {
+    const list = priceLevel == null
+      ? preFiltered
+      : preFiltered.filter(v => v.priceLevel === priceLevel);
+    // Sort: highest rating first, with review count as tiebreaker.
+    return [...list].sort((a, b) => {
+      const ra = a.rating || 0, rb = b.rating || 0;
+      if (rb !== ra) return rb - ra;
+      return (b.reviewCount || 0) - (a.reviewCount || 0);
+    });
+  }, [preFiltered, priceLevel]);
 
   const handleSelect = useCallback((id) => {
     setSelected(prev => prev === id ? null : id);
@@ -372,24 +393,34 @@ export default function WeddingVendorPortal() {
           </span>
           {PRICE_LEVELS.map(pl => {
             const active = priceLevel === pl.value;
+            const count = pl.value == null ? priceLevelCounts.any : (priceLevelCounts[pl.value] || 0);
             return (
               <button
                 key={pl.label}
                 onClick={() => setPriceLevel(pl.value)}
+                disabled={count === 0}
                 style={{
                   background: active ? "#C9A06322" : "#1c1812",
                   border: `1.5px solid ${active ? "#C9A063" : "#2b261d"}`,
-                  color: active ? "#C9A063" : "#8a8175",
+                  color: active ? "#C9A063" : count === 0 ? "#4d4538" : "#8a8175",
                   borderRadius: 20, padding: "5px 14px", fontSize: 12,
-                  fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 600, cursor: count === 0 ? "not-allowed" : "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
                   letterSpacing: pl.value ? 1 : 0,
+                  opacity: count === 0 ? 0.5 : 1,
                   transition: "all 0.2s ease",
                 }}
               >
                 {pl.label}
+                <span style={{ marginLeft: 6, fontSize: 10, color: active ? "#C9A063" : "#6a6155" }}>
+                  {count}
+                </span>
               </button>
             );
           })}
+          <span style={{ fontSize: 10, color: "#6a6155", marginLeft: 8, fontStyle: "italic" }}>
+            (Most vendors don't have a Google price tier)
+          </span>
         </div>
       </header>
 
