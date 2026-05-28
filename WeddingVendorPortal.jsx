@@ -471,6 +471,8 @@ export default function WeddingVendorPortal() {
   const [sortBy, setSortBy] = useState("rating");
   const [lightboxVendor, setLightboxVendor] = useState(null);
   const [routePoints, setRoutePoints] = useState([]); // up to 2 vendors
+  const [routePath, setRoutePath] = useState(null);   // { coords, km, min } from OSRM
+  const [routeLoading, setRouteLoading] = useState(false);
   const [favourites, setFavourites] = useState(() => {
     try { return JSON.parse(localStorage.getItem(FAVE_KEY) || "[]"); } catch { return []; }
   });
@@ -480,6 +482,32 @@ export default function WeddingVendorPortal() {
   useEffect(() => {
     localStorage.setItem(FAVE_KEY, JSON.stringify(favourites));
   }, [favourites]);
+
+  // Fetch a real road-following driving route between the two route points
+  // from OSRM (free, no key). Falls back to a straight line if it fails.
+  useEffect(() => {
+    if (routePoints.length !== 2) { setRoutePath(null); setRouteLoading(false); return; }
+    const [a, b] = routePoints;
+    const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+    let cancelled = false;
+    setRouteLoading(true);
+    setRoutePath(null);
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        const route = data.routes?.[0];
+        if (!route) { setRoutePath(null); return; }
+        setRoutePath({
+          coords: route.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+          km: route.distance / 1000,
+          min: Math.round(route.duration / 60),
+        });
+      })
+      .catch(() => { if (!cancelled) setRoutePath(null); })
+      .finally(() => { if (!cancelled) setRouteLoading(false); });
+    return () => { cancelled = true; };
+  }, [routePoints]);
 
   const toggleCategory = useCallback((key) => {
     setCategories(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
@@ -809,8 +837,10 @@ export default function WeddingVendorPortal() {
               <FlyToSelected selectedVendor={selectedVendor} />
               {routePoints.length === 2 && (
                 <Polyline
-                  positions={routePoints.map(v => [v.lat, v.lng])}
-                  pathOptions={{ color: "#C9A063", weight: 3, dashArray: "8 8", opacity: 0.9 }}
+                  positions={routePath ? routePath.coords : routePoints.map(v => [v.lat, v.lng])}
+                  pathOptions={routePath
+                    ? { color: "#C9A063", weight: 4, opacity: 0.95 }
+                    : { color: "#C9A063", weight: 3, dashArray: "8 8", opacity: 0.6 }}
                 />
               )}
               {filtered.map(v => {
@@ -968,10 +998,18 @@ export default function WeddingVendorPortal() {
                 <strong style={{ color: "#f0ece2" }}>{routePoints[0].name}</strong>
                 <span style={{ color: "#C9A063", margin: "0 8px" }}>→</span>
                 <strong style={{ color: "#f0ece2" }}>{routePoints[1].name}</strong>
-                <span style={{ marginLeft: 10, color: "#C9A063", fontWeight: 700 }}>
-                  ~{haversineKm(routePoints[0], routePoints[1]).toFixed(1)} km
-                </span>
-                <span style={{ marginLeft: 4, fontSize: 11, color: "#6a6155" }}>(straight line)</span>
+                {routePath ? (
+                  <span style={{ marginLeft: 10, color: "#C9A063", fontWeight: 700 }}>
+                    {routePath.km.toFixed(1)} km · {routePath.min} min drive
+                  </span>
+                ) : (
+                  <span style={{ marginLeft: 10, color: "#C9A063", fontWeight: 700 }}>
+                    ~{haversineKm(routePoints[0], routePoints[1]).toFixed(1)} km
+                    <span style={{ marginLeft: 4, fontSize: 11, color: "#6a6155", fontWeight: 400 }}>
+                      {routeLoading ? "(finding route…)" : "(straight line)"}
+                    </span>
+                  </span>
+                )}
               </span>
               <a
                 href={`https://www.google.com/maps/dir/?api=1&origin=${routePoints[0].lat},${routePoints[0].lng}&destination=${routePoints[1].lat},${routePoints[1].lng}&travelmode=driving`}
