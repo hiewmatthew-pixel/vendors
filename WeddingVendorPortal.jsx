@@ -10,9 +10,8 @@ const SORT_OPTIONS = [
   { key: "name", label: "Name (A–Z)" },
 ];
 
-const REGIONS = ["All Regions", ...Array.from(new Set(VENDORS.map(v => v.region))).sort()];
+const REGIONS = Array.from(new Set(VENDORS.map(v => v.region))).sort();
 const CATEGORIES = [
-  { key: "all", label: "All Vendors", icon: "✦" },
   { key: "venue", label: "Venues", icon: "🏛" },
   { key: "bakery", label: "Bakeries", icon: "🎂" },
   { key: "florist", label: "Florists", icon: "💐" },
@@ -197,17 +196,24 @@ function FlyToSelected({ selectedVendor }) {
 }
 
 export default function WeddingVendorPortal() {
-  const [category, setCategory] = useState("all");
-  const [region, setRegion] = useState("All Regions");
+  const [categories, setCategories] = useState([]); // empty = all categories
+  const [regions, setRegions] = useState([]);       // empty = all regions
   const [view, setView] = useState("split");
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("rating");
 
+  const toggleCategory = useCallback((key) => {
+    setCategories(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  }, []);
+  const toggleRegion = useCallback((key) => {
+    setRegions(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  }, []);
+
   const filtered = useMemo(() => {
     const list = VENDORS.filter(v => {
-      if (category !== "all" && v.category !== category) return false;
-      if (region !== "All Regions" && v.region !== region) return false;
+      if (categories.length > 0 && !categories.includes(v.category)) return false;
+      if (regions.length > 0 && !regions.includes(v.region)) return false;
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${v.name} ${v.address || ""} ${(v.types || []).join(" ")}`.toLowerCase();
@@ -223,7 +229,7 @@ export default function WeddingVendorPortal() {
       if (rb !== ra) return rb - ra;
       return (b.reviewCount || 0) - (a.reviewCount || 0);
     });
-  }, [category, region, search, sortBy]);
+  }, [categories, regions, search, sortBy]);
 
   const handleSelect = useCallback((id) => {
     setSelected(prev => prev === id ? null : id);
@@ -320,37 +326,40 @@ export default function WeddingVendorPortal() {
           </div>
         </div>
 
-        {/* FILTERS */}
+        {/* FILTERS — categories (multi-select) + search */}
         <div style={{ marginTop: 18, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.map(cat => {
+            const active = categories.includes(cat.key);
+            return (
+              <button
+                key={cat.key}
+                onClick={() => toggleCategory(cat.key)}
+                style={{
+                  background: active ? "#C9A06322" : "#1c1812",
+                  border: `1.5px solid ${active ? "#C9A063" : "#2b261d"}`,
+                  color: active ? "#C9A063" : "#8a8175",
+                  borderRadius: 20, padding: "7px 16px", fontSize: 12,
+                  fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {active ? "✓ " : ""}{cat.icon} {cat.label}
+              </button>
+            );
+          })}
+
+          {(categories.length > 0 || regions.length > 0) && (
             <button
-              key={cat.key}
-              onClick={() => setCategory(cat.key)}
+              onClick={() => { setCategories([]); setRegions([]); }}
               style={{
-                background: category === cat.key ? "#C9A06322" : "#1c1812",
-                border: `1.5px solid ${category === cat.key ? "#C9A063" : "#2b261d"}`,
-                color: category === cat.key ? "#C9A063" : "#8a8175",
-                borderRadius: 20, padding: "7px 16px", fontSize: 12,
-                fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                transition: "all 0.2s ease",
+                background: "transparent", border: "1px solid #3b342a",
+                color: "#6a6155", borderRadius: 20, padding: "7px 14px",
+                fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
               }}
             >
-              {cat.icon} {cat.label}
+              ✕ Clear filters
             </button>
-          ))}
-
-          <select
-            value={region}
-            onChange={e => setRegion(e.target.value)}
-            style={{
-              background: "#1c1812", border: "1.5px solid #2b261d",
-              color: "#c9c1b3", borderRadius: 20, padding: "7px 16px",
-              fontSize: 12, fontFamily: "'DM Sans', sans-serif",
-              cursor: "pointer", outline: "none",
-            }}
-          >
-            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          )}
 
           <input
             type="text"
@@ -368,6 +377,34 @@ export default function WeddingVendorPortal() {
           <span style={{ fontSize: 12, color: "#6a6155", marginLeft: 4 }}>
             {filtered.length} vendor{filtered.length !== 1 ? "s" : ""}
           </span>
+        </div>
+
+        {/* REGION ROW — multi-select */}
+        <div style={{
+          marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center",
+        }}>
+          <span style={{ fontSize: 11, color: "#6a6155", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>
+            📍 Region:
+          </span>
+          {REGIONS.map(r => {
+            const active = regions.includes(r);
+            return (
+              <button
+                key={r}
+                onClick={() => toggleRegion(r)}
+                style={{
+                  background: active ? "#C9A06322" : "#1c1812",
+                  border: `1.5px solid ${active ? "#C9A063" : "#2b261d"}`,
+                  color: active ? "#C9A063" : "#8a8175",
+                  borderRadius: 20, padding: "5px 14px", fontSize: 11,
+                  fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {active ? "✓ " : ""}{r}
+              </button>
+            );
+          })}
         </div>
 
         {/* SORT ROW */}
