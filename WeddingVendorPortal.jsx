@@ -136,7 +136,7 @@ function VendorThumb({ vendor, onImageClick, isFavourite, onToggleFavourite, hei
   );
 }
 
-function VendorCard({ vendor, isSelected, onClick, onImageClick, isFavourite, onToggleFavourite, inRoute, onToggleRoute }) {
+function VendorCard({ vendor, isSelected, onClick, onImageClick, isFavourite, onToggleFavourite, inRoute, onToggleRoute, distanceKm }) {
   const c = CAT_COLORS[vendor.category];
   return (
     <div
@@ -192,6 +192,9 @@ function VendorCard({ vendor, isSelected, onClick, onImageClick, isFavourite, on
       </div>
       <div style={{ fontSize: 12, color: "#9c9385", marginBottom: 2, fontFamily: "'DM Sans', sans-serif" }}>
         📍 {vendor.region}
+        {distanceKm != null && (
+          <span style={{ color: c.text, fontWeight: 600 }}> · {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`} away</span>
+        )}
       </div>
       {vendor.address && (
         <div style={{ fontSize: 11, color: "#7a7165", marginBottom: 6, marginLeft: 16, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.4 }}>
@@ -592,6 +595,7 @@ export default function WeddingVendorPortal() {
   const [regions, setRegions] = useState([]);       // empty = all regions
   const [view, setView] = useState("split");
   const [selected, setSelected] = useState(null);
+  const [nearbyAnchorId, setNearbyAnchorId] = useState(null); // map-clicked vendor to sort the list around
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("rating");
   const [lightboxVendor, setLightboxVendor] = useState(null);
@@ -708,10 +712,41 @@ export default function WeddingVendorPortal() {
     setSelected(prev => prev === id ? null : id);
   }, []);
 
+  // Clicking a vendor on the map: select it AND anchor the list around it
+  // (nearest-first). If we're in map-only view, reveal the list too.
+  const handleMapSelect = useCallback((id) => {
+    setSelected(id);
+    setNearbyAnchorId(id);
+    setView(v => (v === "map" ? "split" : v));
+  }, []);
+
   const selectedVendor = useMemo(
     () => filtered.find(v => v.id === selected) || null,
     [filtered, selected]
   );
+
+  // The anchor vendor for "near here" mode, if it's still in the filtered set.
+  const nearbyAnchor = useMemo(
+    () => (nearbyAnchorId ? filtered.find(v => v.id === nearbyAnchorId) || null : null),
+    [filtered, nearbyAnchorId]
+  );
+
+  // List ordering: proximity to the map-clicked vendor (anchor first),
+  // otherwise the normal rating/reviews/name sort from `filtered`.
+  const listVendors = useMemo(() => {
+    if (!nearbyAnchor) return filtered;
+    return [...filtered].sort((a, b) => {
+      if (a.id === nearbyAnchor.id) return -1;
+      if (b.id === nearbyAnchor.id) return 1;
+      return haversineKm(nearbyAnchor, a) - haversineKm(nearbyAnchor, b);
+    });
+  }, [filtered, nearbyAnchor]);
+
+  // Scroll the list back to the top whenever the anchor changes.
+  const listScrollRef = useRef(null);
+  useEffect(() => {
+    if (nearbyAnchorId && listScrollRef.current) listScrollRef.current.scrollTop = 0;
+  }, [nearbyAnchorId]);
 
   return (
     <div style={{
@@ -927,11 +962,11 @@ export default function WeddingVendorPortal() {
             ↕ Sort:
           </span>
           {SORT_OPTIONS.map(opt => {
-            const active = sortBy === opt.key;
+            const active = sortBy === opt.key && !nearbyAnchorId;
             return (
               <button
                 key={opt.key}
-                onClick={() => setSortBy(opt.key)}
+                onClick={() => { setSortBy(opt.key); setNearbyAnchorId(null); }}
                 style={{
                   background: active ? "#C9A06322" : "#1c1812",
                   border: `1.5px solid ${active ? "#C9A063" : "#2b261d"}`,
@@ -989,7 +1024,7 @@ export default function WeddingVendorPortal() {
               <ViewportMarkers
                 vendors={filtered}
                 selected={selected}
-                onSelect={handleSelect}
+                onSelect={handleMapSelect}
                 onImageClick={setLightboxVendor}
                 favourites={favourites}
                 onToggleFavourite={toggleFavourite}
@@ -1044,16 +1079,39 @@ export default function WeddingVendorPortal() {
 
         {/* LIST */}
         {view !== "map" && (
-          <div style={{
+          <div ref={listScrollRef} style={{
             flex: view === "list" ? 1 : "0 0 45%",
             overflowY: "auto", padding: "16px 20px",
           }}>
-            {filtered.length === 0 && (
+            {nearbyAnchor && (
+              <div style={{
+                position: "sticky", top: -16, zIndex: 5, margin: "-16px -20px 12px",
+                padding: "10px 20px", background: "rgba(28,24,18,0.96)", backdropFilter: "blur(8px)",
+                borderBottom: "1px solid #2b261d", display: "flex", alignItems: "center",
+                justifyContent: "space-between", gap: 12, fontFamily: "'DM Sans', sans-serif",
+              }}>
+                <span style={{ fontSize: 12, color: "#c9c1b3" }}>
+                  📍 Near <strong style={{ color: "#f0ece2" }}>{nearbyAnchor.name}</strong>
+                  <span style={{ color: "#6a6155" }}> · nearest first</span>
+                </span>
+                <button
+                  onClick={() => setNearbyAnchorId(null)}
+                  style={{
+                    fontSize: 11, color: "#8a8175", background: "transparent",
+                    border: "1px solid #3b342a", borderRadius: 8, padding: "5px 10px",
+                    cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  ✕ Show all
+                </button>
+              </div>
+            )}
+            {listVendors.length === 0 && (
               <div style={{ color: "#5b5246", fontSize: 14, fontStyle: "italic", textAlign: "center", marginTop: 60 }}>
                 No vendors match your filters. Try adjusting the category or region.
               </div>
             )}
-            {filtered.map(v => (
+            {listVendors.map(v => (
               <VendorCard
                 key={v.id}
                 vendor={v}
@@ -1064,6 +1122,7 @@ export default function WeddingVendorPortal() {
                 onToggleFavourite={toggleFavourite}
                 inRoute={routePoints.some(r => r.id === v.id)}
                 onToggleRoute={toggleRoute}
+                distanceKm={nearbyAnchor && v.id !== nearbyAnchor.id ? haversineKm(nearbyAnchor, v) : null}
               />
             ))}
           </div>
