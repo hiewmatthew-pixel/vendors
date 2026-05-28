@@ -9,7 +9,7 @@
 // Get a key: https://console.cloud.google.com/google/maps-apis/credentials
 // Enable: "Places API (New)" in your GCP project before running.
 
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -43,8 +43,14 @@ const FIELD_MASK = [
   "places.regularOpeningHours",
   "places.types",
   "places.businessStatus",
+  "places.photos",
   "nextPageToken",
 ].join(",");
+
+// How wide (px) to download the saved vendor photo. Used as both the
+// card thumbnail and the click-to-enlarge image, so ~640 is a good
+// balance of quality vs. repo size.
+const PHOTO_WIDTH = 640;
 
 const PRICE_LEVEL_MAP = {
   PRICE_LEVEL_FREE: 0,
@@ -118,6 +124,10 @@ for (const cat of CATEGORIES) {
           priceLevel: PRICE_LEVEL_MAP[p.priceLevel] ?? null,
           hours: p.regularOpeningHours?.weekdayDescriptions || [],
           types: p.types || [],
+          // Google photo resource name of the first photo (if any);
+          // downloaded to a local file below, then replaced with `photo`.
+          photoName: p.photos?.[0]?.name || null,
+          photo: null,
         });
         added++;
       }
@@ -135,6 +145,44 @@ console.log(`  venues:   ${vendors.filter(v => v.category === "venue").length}`)
 console.log(`  bakeries: ${vendors.filter(v => v.category === "bakery").length}`);
 console.log(`  florists: ${vendors.filter(v => v.category === "florist").length}`);
 
-const outPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "vendor-data.json");
+// ---- Download one photo per vendor to public/vendor-photos/ ----
+// Stored under the stable Google Place ID so re-runs can skip existing
+// files. The public/ folder is served at the site root by Vite.
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const photoDir = path.join(root, "public", "vendor-photos");
+mkdirSync(photoDir, { recursive: true });
+
+async function downloadPhoto(vendor) {
+  if (!vendor.photoName) return;
+  const file = `${vendor.placeId}.jpg`;
+  const dest = path.join(photoDir, file);
+  vendor.photo = `/vendor-photos/${file}`;
+  if (existsSync(dest)) return; // already downloaded on a previous run
+  const url = `https://places.googleapis.com/v1/${vendor.photoName}/media?maxWidthPx=${PHOTO_WIDTH}&key=${apiKey}`;
+  try {
+    const res = await fetch(url); // follows redirect to the image bytes
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    writeFileSync(dest, buf);
+  } catch (e) {
+    vendor.photo = null;
+    console.log(`  photo failed for ${vendor.name}: ${e.message}`);
+  }
+}
+
+const withPhotos = vendors.filter(v => v.photoName);
+console.log(`\nDownloading ${withPhotos.length} photos (max ${PHOTO_WIDTH}px)...`);
+const CONCURRENCY = 8;
+for (let i = 0; i < withPhotos.length; i += CONCURRENCY) {
+  await Promise.all(withPhotos.slice(i, i + CONCURRENCY).map(downloadPhoto));
+  process.stdout.write(`\r  ${Math.min(i + CONCURRENCY, withPhotos.length)}/${withPhotos.length}   `);
+}
+console.log("");
+
+// Drop the internal photoName before writing the data file.
+for (const v of vendors) delete v.photoName;
+
+const outPath = path.join(root, "vendor-data.json");
 writeFileSync(outPath, JSON.stringify(vendors, null, 2));
-console.log(`\nWrote ${outPath}`);
+console.log(`\n${vendors.filter(v => v.photo).length} vendors have photos`);
+console.log(`Wrote ${outPath}`);

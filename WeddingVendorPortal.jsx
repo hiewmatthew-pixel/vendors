@@ -43,7 +43,49 @@ function priceSymbol(level) {
   return "$".repeat(Math.max(1, Math.min(4, level)));
 }
 
-function VendorCard({ vendor, isSelected, onClick }) {
+function VendorThumb({ vendor, onImageClick, height = 130 }) {
+  const c = CAT_COLORS[vendor.category];
+  const cat = CATEGORIES.find(x => x.key === vendor.category);
+  if (vendor.photo) {
+    return (
+      <div
+        onClick={(e) => { e.stopPropagation(); onImageClick(vendor); }}
+        style={{ height, margin: "-18px -20px 14px", position: "relative", cursor: "zoom-in", overflow: "hidden" }}
+      >
+        <img
+          src={vendor.photo}
+          alt={vendor.name}
+          loading="lazy"
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(180deg, transparent 60%, rgba(20,17,13,0.55) 100%)",
+        }} />
+        <div style={{
+          position: "absolute", bottom: 8, right: 10, fontSize: 10, fontWeight: 600,
+          color: "#f0ece2", background: "rgba(20,17,13,0.6)", borderRadius: 6,
+          padding: "3px 7px", fontFamily: "'DM Sans', sans-serif",
+        }}>
+          🔍 View
+        </div>
+      </div>
+    );
+  }
+  // Placeholder when no photo is available
+  return (
+    <div style={{
+      height, margin: "-18px -20px 14px",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: `linear-gradient(135deg, ${c.bg}, #14110d)`,
+      fontSize: 34, opacity: 0.55,
+    }}>
+      {cat?.icon || "✦"}
+    </div>
+  );
+}
+
+function VendorCard({ vendor, isSelected, onClick, onImageClick }) {
   const c = CAT_COLORS[vendor.category];
   return (
     <div
@@ -60,10 +102,12 @@ function VendorCard({ vendor, isSelected, onClick }) {
         overflow: "hidden",
       }}
     >
+      <VendorThumb vendor={vendor} onImageClick={onImageClick} />
       {isSelected && (
         <div style={{
           position: "absolute", top: 0, left: 0, right: 0, height: 3,
           background: `linear-gradient(90deg, ${c.border}, transparent)`,
+          zIndex: 2,
         }} />
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -160,6 +204,121 @@ function VendorCard({ vendor, isSelected, onClick }) {
   );
 }
 
+function Lightbox({ vendor, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  if (!vendor) return null;
+  const c = CAT_COLORS[vendor.category];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(10,8,6,0.85)", backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20, animation: "fadeIn 0.2s ease",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#1c1812", border: `1px solid ${c.border}55`,
+          borderRadius: 16, overflow: "hidden", maxWidth: 640, width: "100%",
+          maxHeight: "90vh", display: "flex", flexDirection: "column",
+          boxShadow: "0 20px 70px rgba(0,0,0,0.7)",
+        }}
+      >
+        {vendor.photo ? (
+          <img src={vendor.photo} alt={vendor.name}
+            style={{ width: "100%", maxHeight: "55vh", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{
+            height: 200, display: "flex", alignItems: "center", justifyContent: "center",
+            background: `linear-gradient(135deg, ${c.bg}, #14110d)`, fontSize: 48, opacity: 0.5,
+          }}>
+            {CATEGORIES.find(x => x.key === vendor.category)?.icon || "✦"}
+          </div>
+        )}
+        <div style={{ padding: "20px 24px", overflowY: "auto", fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color: c.text }}>
+                {vendor.category} · {vendor.region}
+              </div>
+              <h2 style={{
+                margin: "4px 0 0", fontSize: 26, fontWeight: 600, color: "#f0ece2",
+                fontFamily: "'Cormorant Garamond', serif", letterSpacing: 0.5,
+              }}>
+                {vendor.name}
+              </h2>
+            </div>
+            <button onClick={onClose} style={{
+              background: "transparent", border: "none", color: "#8a8175",
+              fontSize: 24, cursor: "pointer", lineHeight: 1, padding: 4,
+            }}>×</button>
+          </div>
+
+          <div style={{ margin: "10px 0 4px" }}>
+            <StarRating rating={vendor.rating} reviewCount={vendor.reviewCount} />
+            {vendor.priceLevel != null && (
+              <span style={{ marginLeft: 12, color: c.text, fontWeight: 700, letterSpacing: 1 }}>
+                {priceSymbol(vendor.priceLevel)}
+              </span>
+            )}
+          </div>
+
+          {vendor.address && (
+            <div style={{ fontSize: 13, color: "#c9c1b3", marginTop: 8, lineHeight: 1.5 }}>📍 {vendor.address}</div>
+          )}
+          {vendor.phone && (
+            <div style={{ fontSize: 13, color: "#c9c1b3", marginTop: 6 }}>📞 {vendor.phone}</div>
+          )}
+
+          {vendor.hours && vendor.hours.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: c.text, marginBottom: 6 }}>
+                Hours
+              </div>
+              <div style={{ fontSize: 12, color: "#ada69a", lineHeight: 1.6 }}>
+                {vendor.hours.map((h, i) => <div key={i}>{h}</div>)}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
+            {vendor.website && (
+              <a href={vendor.website} target="_blank" rel="noopener noreferrer"
+                style={{
+                  fontSize: 13, color: "#14110d", background: c.border, textDecoration: "none",
+                  fontWeight: 700, padding: "9px 18px", borderRadius: 10,
+                }}>
+                🔗 Visit Website
+              </a>
+            )}
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(vendor.address || `${vendor.name} ${vendor.region}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{
+                fontSize: 13, color: c.text, border: `1.5px solid ${c.border}`, textDecoration: "none",
+                fontWeight: 700, padding: "9px 18px", borderRadius: 10,
+              }}>
+              🧭 Get Directions
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function makePinIcon(color, selected) {
   const size = selected ? 20 : 14;
   return L.divIcon({
@@ -202,6 +361,7 @@ export default function WeddingVendorPortal() {
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("rating");
+  const [lightboxVendor, setLightboxVendor] = useState(null);
 
   const toggleCategory = useCallback((key) => {
     setCategories(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
@@ -478,7 +638,18 @@ export default function WeddingVendorPortal() {
                     eventHandlers={{ click: () => handleSelect(v.id) }}
                   >
                     <Popup>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 160 }}>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 180 }}>
+                        {v.photo && (
+                          <img
+                            src={v.photo}
+                            alt={v.name}
+                            onClick={() => setLightboxVendor(v)}
+                            style={{
+                              width: "100%", height: 96, objectFit: "cover",
+                              borderRadius: 8, marginBottom: 8, cursor: "zoom-in", display: "block",
+                            }}
+                          />
+                        )}
                         <div style={{
                           fontSize: 10, fontWeight: 700, textTransform: "uppercase",
                           letterSpacing: 2, color: c.text, marginBottom: 4,
@@ -553,6 +724,7 @@ export default function WeddingVendorPortal() {
                 vendor={v}
                 isSelected={selected === v.id}
                 onClick={() => handleSelect(v.id)}
+                onImageClick={setLightboxVendor}
               />
             ))}
           </div>
@@ -567,6 +739,10 @@ export default function WeddingVendorPortal() {
       }}>
         Curated by Golden Glance Studio · Prices are approximate and may vary by season · Always confirm directly with vendors
       </div>
+
+      {lightboxVendor && (
+        <Lightbox vendor={lightboxVendor} onClose={() => setLightboxVendor(null)} />
+      )}
     </div>
   );
 }

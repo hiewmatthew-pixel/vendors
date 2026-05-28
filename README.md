@@ -147,15 +147,28 @@ Open `vendor-data.json` directly. Schema per vendor:
   "reviewCount": 342,
   "priceLevel": 3,            // 1-4 ($-$$$$), null = unknown
   "hours": ["Mon: 9 AM - 5 PM", "..."],
-  "types": ["wedding_venue", "banquet_hall"]
+  "types": ["wedding_venue", "banquet_hall"],
+  "photo": "/vendor-photos/ChIJ….jpg"  // local thumbnail, null if none
 }
 ```
+
+### Vendor photos
+
+The fetch script downloads one Google photo per vendor (≤640px wide) into
+`public/vendor-photos/<placeId>.jpg` and sets the `photo` field to the local
+path. These files are committed to the repo and served as static assets, so
+**no API key is exposed in the browser** and there's no per-view cost.
+
+- Re-running the script skips photos already on disk (fast incremental runs).
+- ~700 of the 822 vendors have a photo; total is roughly 35–50 MB.
+- Vendors without a photo show a tinted category-icon placeholder.
 
 ### Customizing the search queries
 
 Edit `scripts/fetch-vendors.mjs`:
 - `REGIONS` — cities to search
 - `CATEGORIES` — query strings (e.g., change `"wedding cake bakery"` to `"custom wedding cake"`)
+- `PHOTO_WIDTH` — downloaded photo width in px
 
 ---
 
