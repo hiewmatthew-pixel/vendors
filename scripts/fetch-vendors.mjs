@@ -47,10 +47,12 @@ const FIELD_MASK = [
   "nextPageToken",
 ].join(",");
 
-// How wide (px) to download the saved vendor photo. Used as both the
-// card thumbnail and the click-to-enlarge image, so ~640 is a good
-// balance of quality vs. repo size.
+// How wide (px) to download saved vendor photos. Used as both the card
+// thumbnail and the click-to-enlarge gallery, so ~640 is a good balance
+// of quality vs. repo size.
 const PHOTO_WIDTH = 640;
+// How many photos to download per vendor (gallery size).
+const PHOTO_COUNT = 3;
 
 const PRICE_LEVEL_MAP = {
   PRICE_LEVEL_FREE: 0,
@@ -124,10 +126,11 @@ for (const cat of CATEGORIES) {
           priceLevel: PRICE_LEVEL_MAP[p.priceLevel] ?? null,
           hours: p.regularOpeningHours?.weekdayDescriptions || [],
           types: p.types || [],
-          // Google photo resource name of the first photo (if any);
-          // downloaded to a local file below, then replaced with `photo`.
-          photoName: p.photos?.[0]?.name || null,
-          photo: null,
+          // Google photo resource names (up to PHOTO_COUNT); downloaded
+          // to local files below and replaced with `photos` paths.
+          photoNames: (p.photos || []).slice(0, PHOTO_COUNT).map(ph => ph.name),
+          photo: null,   // first photo path (thumbnail) — set after download
+          photos: [],    // all downloaded photo paths (gallery)
         });
         added++;
       }
@@ -152,35 +155,43 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const photoDir = path.join(root, "public", "vendor-photos");
 mkdirSync(photoDir, { recursive: true });
 
-async function downloadPhoto(vendor) {
-  if (!vendor.photoName) return;
-  const file = `${vendor.placeId}.jpg`;
-  const dest = path.join(photoDir, file);
-  vendor.photo = `/vendor-photos/${file}`;
-  if (existsSync(dest)) return; // already downloaded on a previous run
-  const url = `https://places.googleapis.com/v1/${vendor.photoName}/media?maxWidthPx=${PHOTO_WIDTH}&key=${apiKey}`;
-  try {
-    const res = await fetch(url); // follows redirect to the image bytes
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    writeFileSync(dest, buf);
-  } catch (e) {
-    vendor.photo = null;
-    console.log(`  photo failed for ${vendor.name}: ${e.message}`);
-  }
+async function downloadOne(photoName, dest) {
+  if (existsSync(dest)) return true; // already downloaded on a previous run
+  const url = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${PHOTO_WIDTH}&key=${apiKey}`;
+  const res = await fetch(url); // follows redirect to the image bytes
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
+  return true;
 }
 
-const withPhotos = vendors.filter(v => v.photoName);
-console.log(`\nDownloading ${withPhotos.length} photos (max ${PHOTO_WIDTH}px)...`);
+async function downloadVendorPhotos(vendor) {
+  const paths = [];
+  for (let i = 0; i < vendor.photoNames.length; i++) {
+    const file = `${vendor.placeId}-${i}.jpg`;
+    const dest = path.join(photoDir, file);
+    try {
+      await downloadOne(vendor.photoNames[i], dest);
+      paths.push(`/vendor-photos/${file}`);
+    } catch (e) {
+      console.log(`  photo ${i} failed for ${vendor.name}: ${e.message}`);
+    }
+  }
+  vendor.photos = paths;
+  vendor.photo = paths[0] || null;
+}
+
+const withPhotos = vendors.filter(v => v.photoNames.length);
+const totalPhotos = withPhotos.reduce((s, v) => s + v.photoNames.length, 0);
+console.log(`\nDownloading up to ${totalPhotos} photos for ${withPhotos.length} vendors (max ${PHOTO_WIDTH}px)...`);
 const CONCURRENCY = 8;
 for (let i = 0; i < withPhotos.length; i += CONCURRENCY) {
-  await Promise.all(withPhotos.slice(i, i + CONCURRENCY).map(downloadPhoto));
-  process.stdout.write(`\r  ${Math.min(i + CONCURRENCY, withPhotos.length)}/${withPhotos.length}   `);
+  await Promise.all(withPhotos.slice(i, i + CONCURRENCY).map(downloadVendorPhotos));
+  process.stdout.write(`\r  ${Math.min(i + CONCURRENCY, withPhotos.length)}/${withPhotos.length} vendors   `);
 }
 console.log("");
 
-// Drop the internal photoName before writing the data file.
-for (const v of vendors) delete v.photoName;
+// Drop the internal photoNames before writing the data file.
+for (const v of vendors) delete v.photoNames;
 
 const outPath = path.join(root, "vendor-data.json");
 writeFileSync(outPath, JSON.stringify(vendors, null, 2));

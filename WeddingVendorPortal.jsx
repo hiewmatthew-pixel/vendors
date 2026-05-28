@@ -1,8 +1,22 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import VENDORS from "./vendor-data.json";
+import { exportToSheet, exportToCsv, isSheetsConfigured } from "./googleSheets.js";
+
+const FAVE_KEY = "ggs_favourites";
+
+function haversineKm(a, b) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
 
 const SORT_OPTIONS = [
   { key: "rating", label: "Top Rated" },
@@ -43,17 +57,52 @@ function priceSymbol(level) {
   return "$".repeat(Math.max(1, Math.min(4, level)));
 }
 
-function VendorThumb({ vendor, onImageClick, height = 130 }) {
+function navBtnStyle(side) {
+  return {
+    position: "absolute", top: "50%", [side]: 8, transform: "translateY(-50%)",
+    background: "rgba(20,17,13,0.6)", color: "#f0ece2", border: "none",
+    borderRadius: "50%", width: 36, height: 36, fontSize: 22, lineHeight: 1,
+    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+  };
+}
+
+function vendorPhotos(v) {
+  if (v.photos && v.photos.length) return v.photos;
+  if (v.photo) return [v.photo];
+  return [];
+}
+
+function HeartButton({ isFavourite, onToggle }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      title={isFavourite ? "Remove from favourites" : "Save to favourites"}
+      style={{
+        position: "absolute", top: 8, right: 8, zIndex: 3,
+        width: 32, height: 32, borderRadius: "50%", border: "none",
+        background: "rgba(20,17,13,0.6)", backdropFilter: "blur(4px)",
+        cursor: "pointer", fontSize: 16, lineHeight: 1,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color: isFavourite ? "#ff6b81" : "#f0ece2",
+      }}
+    >
+      {isFavourite ? "♥" : "♡"}
+    </button>
+  );
+}
+
+function VendorThumb({ vendor, onImageClick, isFavourite, onToggleFavourite, height = 130 }) {
   const c = CAT_COLORS[vendor.category];
   const cat = CATEGORIES.find(x => x.key === vendor.category);
-  if (vendor.photo) {
+  const photos = vendorPhotos(vendor);
+  if (photos.length) {
     return (
       <div
         onClick={(e) => { e.stopPropagation(); onImageClick(vendor); }}
         style={{ height, margin: "-18px -20px 14px", position: "relative", cursor: "zoom-in", overflow: "hidden" }}
       >
         <img
-          src={vendor.photo}
+          src={photos[0]}
           alt={vendor.name}
           loading="lazy"
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
@@ -62,12 +111,13 @@ function VendorThumb({ vendor, onImageClick, height = 130 }) {
           position: "absolute", inset: 0,
           background: "linear-gradient(180deg, transparent 60%, rgba(20,17,13,0.55) 100%)",
         }} />
+        <HeartButton isFavourite={isFavourite} onToggle={() => onToggleFavourite(vendor.id)} />
         <div style={{
           position: "absolute", bottom: 8, right: 10, fontSize: 10, fontWeight: 600,
           color: "#f0ece2", background: "rgba(20,17,13,0.6)", borderRadius: 6,
           padding: "3px 7px", fontFamily: "'DM Sans', sans-serif",
         }}>
-          🔍 View
+          {photos.length > 1 ? `📷 ${photos.length} · View` : "🔍 View"}
         </div>
       </div>
     );
@@ -75,17 +125,18 @@ function VendorThumb({ vendor, onImageClick, height = 130 }) {
   // Placeholder when no photo is available
   return (
     <div style={{
-      height, margin: "-18px -20px 14px",
+      height, margin: "-18px -20px 14px", position: "relative",
       display: "flex", alignItems: "center", justifyContent: "center",
       background: `linear-gradient(135deg, ${c.bg}, #14110d)`,
-      fontSize: 34, opacity: 0.55,
+      fontSize: 34,
     }}>
-      {cat?.icon || "✦"}
+      <span style={{ opacity: 0.55 }}>{cat?.icon || "✦"}</span>
+      <HeartButton isFavourite={isFavourite} onToggle={() => onToggleFavourite(vendor.id)} />
     </div>
   );
 }
 
-function VendorCard({ vendor, isSelected, onClick, onImageClick }) {
+function VendorCard({ vendor, isSelected, onClick, onImageClick, isFavourite, onToggleFavourite, inRoute, onToggleRoute }) {
   const c = CAT_COLORS[vendor.category];
   return (
     <div
@@ -102,7 +153,7 @@ function VendorCard({ vendor, isSelected, onClick, onImageClick }) {
         overflow: "hidden",
       }}
     >
-      <VendorThumb vendor={vendor} onImageClick={onImageClick} />
+      <VendorThumb vendor={vendor} onImageClick={onImageClick} isFavourite={isFavourite} onToggleFavourite={onToggleFavourite} />
       {isSelected && (
         <div style={{
           position: "absolute", top: 0, left: 0, right: 0, height: 3,
@@ -197,6 +248,18 @@ function VendorCard({ vendor, isSelected, onClick, onImageClick }) {
             >
               🧭 Directions →
             </a>
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleRoute(vendor); }}
+              style={{
+                fontSize: 12, fontWeight: 600, fontFamily: "'DM Sans', sans-serif",
+                cursor: "pointer", borderRadius: 8, padding: "4px 10px",
+                background: inRoute ? c.border : "transparent",
+                color: inRoute ? "#14110d" : c.text,
+                border: `1px solid ${c.border}`,
+              }}
+            >
+              {inRoute ? "✓ In route" : "📏 Compare distance"}
+            </button>
           </div>
         </div>
       )}
@@ -204,19 +267,29 @@ function VendorCard({ vendor, isSelected, onClick, onImageClick }) {
   );
 }
 
-function Lightbox({ vendor, onClose }) {
+function Lightbox({ vendor, onClose, isFavourite, onToggleFavourite, inRoute, onToggleRoute }) {
+  const photos = vendor ? vendorPhotos(vendor) : [];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => { setIdx(0); }, [vendor]);
+
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight" && photos.length > 1) setIdx(i => (i + 1) % photos.length);
+      if (e.key === "ArrowLeft" && photos.length > 1) setIdx(i => (i - 1 + photos.length) % photos.length);
+    };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [onClose]);
+  }, [onClose, photos.length]);
 
   if (!vendor) return null;
   const c = CAT_COLORS[vendor.category];
+  const go = (delta) => setIdx(i => (i + delta + photos.length) % photos.length);
 
   return (
     <div
@@ -237,9 +310,28 @@ function Lightbox({ vendor, onClose }) {
           boxShadow: "0 20px 70px rgba(0,0,0,0.7)",
         }}
       >
-        {vendor.photo ? (
-          <img src={vendor.photo} alt={vendor.name}
-            style={{ width: "100%", maxHeight: "55vh", objectFit: "cover", display: "block" }} />
+        {photos.length ? (
+          <div style={{ position: "relative" }}>
+            <img src={photos[idx]} alt={vendor.name}
+              style={{ width: "100%", maxHeight: "55vh", objectFit: "cover", display: "block" }} />
+            {photos.length > 1 && (
+              <>
+                <button onClick={() => go(-1)} style={navBtnStyle("left")}>‹</button>
+                <button onClick={() => go(1)} style={navBtnStyle("right")}>›</button>
+                <div style={{
+                  position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)",
+                  display: "flex", gap: 6,
+                }}>
+                  {photos.map((_, i) => (
+                    <span key={i} onClick={() => setIdx(i)} style={{
+                      width: 8, height: 8, borderRadius: "50%", cursor: "pointer",
+                      background: i === idx ? "#f0ece2" : "rgba(240,236,226,0.4)",
+                    }} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <div style={{
             height: 200, display: "flex", alignItems: "center", justifyContent: "center",
@@ -312,6 +404,22 @@ function Lightbox({ vendor, onClose }) {
               }}>
               🧭 Get Directions
             </a>
+            <button onClick={() => onToggleFavourite(vendor.id)}
+              style={{
+                fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 10, padding: "9px 18px",
+                background: "transparent", border: `1.5px solid ${isFavourite ? "#ff6b81" : "#2b261d"}`,
+                color: isFavourite ? "#ff6b81" : "#ada69a",
+              }}>
+              {isFavourite ? "♥ Saved" : "♡ Save"}
+            </button>
+            <button onClick={() => onToggleRoute(vendor)}
+              style={{
+                fontSize: 13, fontWeight: 700, cursor: "pointer", borderRadius: 10, padding: "9px 18px",
+                background: inRoute ? c.border : "transparent",
+                border: `1.5px solid ${c.border}`, color: inRoute ? "#14110d" : c.text,
+              }}>
+              {inRoute ? "✓ In route" : "📏 Compare distance"}
+            </button>
           </div>
         </div>
       </div>
@@ -362,6 +470,16 @@ export default function WeddingVendorPortal() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("rating");
   const [lightboxVendor, setLightboxVendor] = useState(null);
+  const [routePoints, setRoutePoints] = useState([]); // up to 2 vendors
+  const [favourites, setFavourites] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(FAVE_KEY) || "[]"); } catch { return []; }
+  });
+  const [showFaves, setShowFaves] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(FAVE_KEY, JSON.stringify(favourites));
+  }, [favourites]);
 
   const toggleCategory = useCallback((key) => {
     setCategories(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
@@ -369,11 +487,43 @@ export default function WeddingVendorPortal() {
   const toggleRegion = useCallback((key) => {
     setRegions(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   }, []);
+  const toggleFavourite = useCallback((id) => {
+    setFavourites(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+  const toggleRoute = useCallback((vendor) => {
+    setRoutePoints(prev => {
+      if (prev.find(v => v.id === vendor.id)) return prev.filter(v => v.id !== vendor.id);
+      return [...prev, vendor].slice(-2); // keep the two most recent
+    });
+  }, []);
+
+  const handleExport = useCallback(async () => {
+    const favVendors = VENDORS.filter(v => favourites.includes(v.id));
+    if (!favVendors.length) return;
+    if (!isSheetsConfigured()) {
+      exportToCsv(favVendors, "ggs-favourite-vendors.csv");
+      return;
+    }
+    setExporting(true);
+    try {
+      const url = await exportToSheet(favVendors, "GGS Favourite Wedding Vendors");
+      window.open(url, "_blank");
+    } catch (e) {
+      alert(
+        "Couldn't create a Google Sheet (" + e.message + ").\n\n" +
+        "Downloading a CSV instead — you can import it into Google Sheets via File → Import."
+      );
+      exportToCsv(favVendors, "ggs-favourite-vendors.csv");
+    } finally {
+      setExporting(false);
+    }
+  }, [favourites]);
 
   const filtered = useMemo(() => {
     const list = VENDORS.filter(v => {
       if (categories.length > 0 && !categories.includes(v.category)) return false;
       if (regions.length > 0 && !regions.includes(v.region)) return false;
+      if (showFaves && !favourites.includes(v.id)) return false;
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${v.name} ${v.address || ""} ${(v.types || []).join(" ")}`.toLowerCase();
@@ -389,7 +539,7 @@ export default function WeddingVendorPortal() {
       if (rb !== ra) return rb - ra;
       return (b.reviewCount || 0) - (a.reviewCount || 0);
     });
-  }, [categories, regions, search, sortBy]);
+  }, [categories, regions, search, sortBy, showFaves, favourites]);
 
   const handleSelect = useCallback((id) => {
     setSelected(prev => prev === id ? null : id);
@@ -461,28 +611,59 @@ export default function WeddingVendorPortal() {
             </p>
           </div>
 
-          {/* VIEW TOGGLE */}
-          <div style={{ display: "flex", gap: 4, background: "#1c1812", borderRadius: 10, padding: 3 }}>
-            {[
-              { key: "split", label: "Split" },
-              { key: "map", label: "Map" },
-              { key: "list", label: "List" },
-            ].map(v => (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            {/* FAVOURITES */}
+            <button
+              onClick={() => setShowFaves(s => !s)}
+              style={{
+                background: showFaves ? "#ff6b8122" : "#1c1812",
+                border: `1.5px solid ${showFaves ? "#ff6b81" : "#2b261d"}`,
+                color: showFaves ? "#ff6b81" : "#8a8175",
+                borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              ♥ Saved ({favourites.length})
+            </button>
+            {favourites.length > 0 && (
               <button
-                key={v.key}
-                onClick={() => setView(v.key)}
+                onClick={handleExport}
+                disabled={exporting}
+                title={isSheetsConfigured() ? "Export favourites to a Google Sheet" : "Download favourites as CSV (opens in Excel & Google Sheets)"}
                 style={{
-                  background: view === v.key ? "#C9A063" : "transparent",
-                  color: view === v.key ? "#1a160f" : "#8a8175",
-                  border: "none", borderRadius: 8, padding: "6px 16px",
-                  fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  transition: "all 0.2s ease",
+                  background: "#C9A063", color: "#14110d",
+                  border: "none", borderRadius: 10, padding: "8px 14px",
+                  fontSize: 12, fontWeight: 700, cursor: exporting ? "wait" : "pointer",
+                  fontFamily: "'DM Sans', sans-serif", opacity: exporting ? 0.6 : 1,
                 }}
               >
-                {v.label}
+                {exporting ? "Exporting…" : (isSheetsConfigured() ? "📊 Export to Sheets" : "📊 Export CSV")}
               </button>
-            ))}
+            )}
+
+            {/* VIEW TOGGLE */}
+            <div style={{ display: "flex", gap: 4, background: "#1c1812", borderRadius: 10, padding: 3 }}>
+              {[
+                { key: "split", label: "Split" },
+                { key: "map", label: "Map" },
+                { key: "list", label: "List" },
+              ].map(v => (
+                <button
+                  key={v.key}
+                  onClick={() => setView(v.key)}
+                  style={{
+                    background: view === v.key ? "#C9A063" : "transparent",
+                    color: view === v.key ? "#1a160f" : "#8a8175",
+                    border: "none", borderRadius: 8, padding: "6px 16px",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -626,6 +807,12 @@ export default function WeddingVendorPortal() {
               />
               <FitBounds vendors={filtered} />
               <FlyToSelected selectedVendor={selectedVendor} />
+              {routePoints.length === 2 && (
+                <Polyline
+                  positions={routePoints.map(v => [v.lat, v.lng])}
+                  pathOptions={{ color: "#C9A063", weight: 3, dashArray: "8 8", opacity: 0.9 }}
+                />
+              )}
               {filtered.map(v => {
                 const c = CAT_COLORS[v.category];
                 const isSel = selected === v.id;
@@ -639,9 +826,9 @@ export default function WeddingVendorPortal() {
                   >
                     <Popup>
                       <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 180 }}>
-                        {v.photo && (
+                        {vendorPhotos(v)[0] && (
                           <img
-                            src={v.photo}
+                            src={vendorPhotos(v)[0]}
                             alt={v.name}
                             onClick={() => setLightboxVendor(v)}
                             style={{
@@ -669,6 +856,24 @@ export default function WeddingVendorPortal() {
                         <div style={{ fontSize: 13, fontWeight: 700, color: c.text, letterSpacing: 1 }}>
                           {v.priceLevel != null ? priceSymbol(v.priceLevel) : null}
                           {v.rating ? <span style={{ marginLeft: v.priceLevel != null ? 8 : 0, color: "#5b5246", fontWeight: 500 }}>★ {v.rating.toFixed(1)}{v.reviewCount ? ` (${v.reviewCount.toLocaleString()})` : ""}</span> : null}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                          <button onClick={() => toggleFavourite(v.id)} style={{
+                            flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 7, padding: "5px 8px",
+                            background: "transparent",
+                            border: `1px solid ${favourites.includes(v.id) ? "#ff6b81" : "#ccc"}`,
+                            color: favourites.includes(v.id) ? "#ff6b81" : "#555",
+                          }}>
+                            {favourites.includes(v.id) ? "♥ Saved" : "♡ Save"}
+                          </button>
+                          <button onClick={() => toggleRoute(v)} style={{
+                            flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", borderRadius: 7, padding: "5px 8px",
+                            background: routePoints.some(r => r.id === v.id) ? c.border : "transparent",
+                            border: `1px solid ${c.border}`,
+                            color: routePoints.some(r => r.id === v.id) ? "#14110d" : c.text,
+                          }}>
+                            {routePoints.some(r => r.id === v.id) ? "✓ Route" : "📏 Route"}
+                          </button>
                         </div>
                       </div>
                     </Popup>
@@ -725,6 +930,10 @@ export default function WeddingVendorPortal() {
                 isSelected={selected === v.id}
                 onClick={() => handleSelect(v.id)}
                 onImageClick={setLightboxVendor}
+                isFavourite={favourites.includes(v.id)}
+                onToggleFavourite={toggleFavourite}
+                inRoute={routePoints.some(r => r.id === v.id)}
+                onToggleRoute={toggleRoute}
               />
             ))}
           </div>
@@ -740,8 +949,63 @@ export default function WeddingVendorPortal() {
         Curated by Golden Glance Studio · Prices are approximate and may vary by season · Always confirm directly with vendors
       </div>
 
+      {routePoints.length > 0 && (
+        <div style={{
+          position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
+          zIndex: 800, background: "rgba(28,24,18,0.96)", backdropFilter: "blur(10px)",
+          border: "1px solid #C9A06355", borderRadius: 14, padding: "12px 18px",
+          display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.5)", maxWidth: "92vw",
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {routePoints.length === 1 ? (
+            <span style={{ fontSize: 13, color: "#c9c1b3" }}>
+              📏 <strong style={{ color: "#f0ece2" }}>{routePoints[0].name}</strong> — select a second vendor to compare distance
+            </span>
+          ) : (
+            <>
+              <span style={{ fontSize: 13, color: "#c9c1b3" }}>
+                <strong style={{ color: "#f0ece2" }}>{routePoints[0].name}</strong>
+                <span style={{ color: "#C9A063", margin: "0 8px" }}>→</span>
+                <strong style={{ color: "#f0ece2" }}>{routePoints[1].name}</strong>
+                <span style={{ marginLeft: 10, color: "#C9A063", fontWeight: 700 }}>
+                  ~{haversineKm(routePoints[0], routePoints[1]).toFixed(1)} km
+                </span>
+                <span style={{ marginLeft: 4, fontSize: 11, color: "#6a6155" }}>(straight line)</span>
+              </span>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&origin=${routePoints[0].lat},${routePoints[0].lng}&destination=${routePoints[1].lat},${routePoints[1].lng}&travelmode=driving`}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  fontSize: 12, fontWeight: 700, color: "#14110d", background: "#C9A063",
+                  textDecoration: "none", padding: "7px 14px", borderRadius: 9, whiteSpace: "nowrap",
+                }}
+              >
+                🧭 Driving route
+              </a>
+            </>
+          )}
+          <button
+            onClick={() => setRoutePoints([])}
+            style={{
+              fontSize: 12, color: "#8a8175", background: "transparent",
+              border: "1px solid #3b342a", borderRadius: 9, padding: "7px 12px", cursor: "pointer",
+            }}
+          >
+            ✕ Clear
+          </button>
+        </div>
+      )}
+
       {lightboxVendor && (
-        <Lightbox vendor={lightboxVendor} onClose={() => setLightboxVendor(null)} />
+        <Lightbox
+          vendor={lightboxVendor}
+          onClose={() => setLightboxVendor(null)}
+          isFavourite={favourites.includes(lightboxVendor.id)}
+          onToggleFavourite={toggleFavourite}
+          inRoute={routePoints.some(r => r.id === lightboxVendor.id)}
+          onToggleRoute={toggleRoute}
+        />
       )}
     </div>
   );

@@ -169,6 +169,45 @@ Edit `scripts/fetch-vendors.mjs`:
 - `REGIONS` — cities to search
 - `CATEGORIES` — query strings (e.g., change `"wedding cake bakery"` to `"custom wedding cake"`)
 - `PHOTO_WIDTH` — downloaded photo width in px
+- `PHOTO_COUNT` — photos per vendor (gallery size, default 3)
+
+---
+
+## ⭐ Favourites & 📊 Export to Google Sheets
+
+Visitors can tap the ♥ on any vendor to save it (stored in their browser via
+localStorage). The header shows **♥ Saved (N)** to filter to saved vendors and
+an **Export** button.
+
+**Without any setup**, Export downloads a `.csv` (opens in Excel, and imports
+into Google Sheets via *File → Import*).
+
+**To make Export create a live Google Sheet** in the visitor's own Google Drive,
+set up an OAuth Client ID (one-time, ~5 min):
+
+1. GCP Console → **APIs & Services → Library** → enable **Google Sheets API**.
+2. **APIs & Services → OAuth consent screen**:
+   - User type **External**, fill in app name + your email.
+   - Add scope `.../auth/drive.file` (non-sensitive — no Google verification needed).
+   - You can **Publish** the app so any Google user can use it (drive.file doesn't
+     require verification), or leave it in *Testing* and add specific test users.
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**:
+   - Application type **Web application**.
+   - **Authorized JavaScript origins**: add `http://localhost:5173` (local dev) and
+     your live URL (e.g. `https://vendors.vercel.app`).
+   - Copy the **Client ID** (it's public — safe to expose in the browser).
+4. Add the Client ID as an env var named `VITE_GOOGLE_OAUTH_CLIENT_ID`:
+   - **Locally**: add to `vendors/.env` →
+     `VITE_GOOGLE_OAUTH_CLIENT_ID=xxxx.apps.googleusercontent.com`
+   - **Vercel**: Project → Settings → Environment Variables → add the same, then
+     redeploy.
+
+Once set, the Export button reads **"📊 Export to Sheets"**: the visitor signs in
+with Google, grants permission, and a new sheet of their favourites opens in a tab.
+If anything fails, it automatically falls back to a CSV download.
+
+> The OAuth Client ID is **public** (unlike an API key/secret) and only works from
+> the origins you authorized, so it's safe to commit / put in Vercel env.
 
 ---
 
@@ -179,11 +218,14 @@ vendors/
 ├── index.html                  ← Entry HTML
 ├── main.jsx                    ← React entry point
 ├── WeddingVendorPortal.jsx     ← The app UI
+├── googleSheets.js             ← Favourites export (Sheets + CSV)
 ├── vendor-data.json            ← Vendor list (generated or hand-edited)
 ├── package.json
 ├── vite.config.js
 ├── vercel.json
 ├── favicon.svg
+├── public/
+│   └── vendor-photos/          ← Downloaded vendor photos (generated)
 └── scripts/
     └── fetch-vendors.mjs       ← Google Places ingestion script
 ```
