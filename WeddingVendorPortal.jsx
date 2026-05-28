@@ -4,12 +4,10 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import VENDORS from "./vendor-data.json";
 
-const PRICE_LEVELS = [
-  { label: "Any Price", value: null },
-  { label: "$", value: 1 },
-  { label: "$$", value: 2 },
-  { label: "$$$", value: 3 },
-  { label: "$$$$", value: 4 },
+const SORT_OPTIONS = [
+  { key: "rating", label: "Top Rated" },
+  { key: "reviews", label: "Most Reviewed" },
+  { key: "name", label: "Name (A–Z)" },
 ];
 
 const REGIONS = ["All Regions", ...Array.from(new Set(VENDORS.map(v => v.region))).sort()];
@@ -86,14 +84,16 @@ function VendorCard({ vendor, isSelected, onClick }) {
           </h3>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-          <span title={vendor.priceLevel == null ? "Price not listed" : ""} style={{
-            background: c.bg, border: `1px solid ${c.border}33`,
-            borderRadius: 8, padding: "4px 10px", fontSize: 14, fontWeight: 700,
-            color: c.text, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap",
-            letterSpacing: 1,
-          }}>
-            {priceSymbol(vendor.priceLevel)}
-          </span>
+          {vendor.priceLevel != null && (
+            <span style={{
+              background: c.bg, border: `1px solid ${c.border}33`,
+              borderRadius: 8, padding: "4px 10px", fontSize: 14, fontWeight: 700,
+              color: c.text, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap",
+              letterSpacing: 1,
+            }}>
+              {priceSymbol(vendor.priceLevel)}
+            </span>
+          )}
         </div>
       </div>
       <div style={{ fontSize: 12, color: "#9c9385", marginBottom: 2, fontFamily: "'DM Sans', sans-serif" }}>
@@ -202,12 +202,10 @@ export default function WeddingVendorPortal() {
   const [view, setView] = useState("split");
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
-  const [priceLevel, setPriceLevel] = useState(null);
+  const [sortBy, setSortBy] = useState("rating");
 
-  // Pre-filtered set (category/region/search) — used for both the list
-  // and for computing per-price-level counts on the filter chips.
-  const preFiltered = useMemo(() => {
-    return VENDORS.filter(v => {
+  const filtered = useMemo(() => {
+    const list = VENDORS.filter(v => {
       if (category !== "all" && v.category !== category) return false;
       if (region !== "All Regions" && v.region !== region) return false;
       if (search) {
@@ -217,27 +215,15 @@ export default function WeddingVendorPortal() {
       }
       return true;
     });
-  }, [category, region, search]);
-
-  const priceLevelCounts = useMemo(() => {
-    const counts = { null: 0, 1: 0, 2: 0, 3: 0, 4: 0, any: preFiltered.length };
-    for (const v of preFiltered) {
-      counts[v.priceLevel ?? "null"] = (counts[v.priceLevel ?? "null"] || 0) + 1;
-    }
-    return counts;
-  }, [preFiltered]);
-
-  const filtered = useMemo(() => {
-    const list = priceLevel == null
-      ? preFiltered
-      : preFiltered.filter(v => v.priceLevel === priceLevel);
-    // Sort: highest rating first, with review count as tiebreaker.
-    return [...list].sort((a, b) => {
+    return list.sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "reviews") return (b.reviewCount || 0) - (a.reviewCount || 0);
+      // "rating" (default): rating desc, review count as tiebreaker
       const ra = a.rating || 0, rb = b.rating || 0;
       if (rb !== ra) return rb - ra;
       return (b.reviewCount || 0) - (a.reviewCount || 0);
     });
-  }, [preFiltered, priceLevel]);
+  }, [category, region, search, sortBy]);
 
   const handleSelect = useCallback((id) => {
     setSelected(prev => prev === id ? null : id);
@@ -384,43 +370,32 @@ export default function WeddingVendorPortal() {
           </span>
         </div>
 
-        {/* PRICE LEVEL FILTER ROW */}
+        {/* SORT ROW */}
         <div style={{
           marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center",
         }}>
           <span style={{ fontSize: 11, color: "#6a6155", fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>
-            💰 Price:
+            ↕ Sort:
           </span>
-          {PRICE_LEVELS.map(pl => {
-            const active = priceLevel === pl.value;
-            const count = pl.value == null ? priceLevelCounts.any : (priceLevelCounts[pl.value] || 0);
+          {SORT_OPTIONS.map(opt => {
+            const active = sortBy === opt.key;
             return (
               <button
-                key={pl.label}
-                onClick={() => setPriceLevel(pl.value)}
-                disabled={count === 0}
+                key={opt.key}
+                onClick={() => setSortBy(opt.key)}
                 style={{
                   background: active ? "#C9A06322" : "#1c1812",
                   border: `1.5px solid ${active ? "#C9A063" : "#2b261d"}`,
-                  color: active ? "#C9A063" : count === 0 ? "#4d4538" : "#8a8175",
+                  color: active ? "#C9A063" : "#8a8175",
                   borderRadius: 20, padding: "5px 14px", fontSize: 12,
-                  fontWeight: 600, cursor: count === 0 ? "not-allowed" : "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  letterSpacing: pl.value ? 1 : 0,
-                  opacity: count === 0 ? 0.5 : 1,
+                  fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
                   transition: "all 0.2s ease",
                 }}
               >
-                {pl.label}
-                <span style={{ marginLeft: 6, fontSize: 10, color: active ? "#C9A063" : "#6a6155" }}>
-                  {count}
-                </span>
+                {opt.label}
               </button>
             );
           })}
-          <span style={{ fontSize: 10, color: "#6a6155", marginLeft: 8, fontStyle: "italic" }}>
-            (Most vendors don't have a Google price tier)
-          </span>
         </div>
       </header>
 
@@ -484,8 +459,8 @@ export default function WeddingVendorPortal() {
                           <div style={{ fontSize: 11, color: "#7a7165", marginBottom: 4, marginLeft: 16, lineHeight: 1.4 }}>{v.address}</div>
                         )}
                         <div style={{ fontSize: 13, fontWeight: 700, color: c.text, letterSpacing: 1 }}>
-                          {priceSymbol(v.priceLevel)}
-                          {v.rating ? <span style={{ marginLeft: 8, color: "#5b5246", fontWeight: 500 }}>★ {v.rating.toFixed(1)}</span> : null}
+                          {v.priceLevel != null ? priceSymbol(v.priceLevel) : null}
+                          {v.rating ? <span style={{ marginLeft: v.priceLevel != null ? 8 : 0, color: "#5b5246", fontWeight: 500 }}>★ {v.rating.toFixed(1)}{v.reviewCount ? ` (${v.reviewCount.toLocaleString()})` : ""}</span> : null}
                         </div>
                       </div>
                     </Popup>
