@@ -21,7 +21,13 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const REGIONS = ["Toronto", "Mississauga", "Vaughan", "Markham", "Hamilton", "Burlington"];
+const REGIONS = [
+  // GTA
+  "Toronto", "Mississauga", "Vaughan", "Markham", "Hamilton", "Burlington",
+  // Adjacent Southern Ontario
+  "Oakville", "Milton", "Oshawa", "Whitby", "Kitchener", "Waterloo",
+  "Guelph", "Barrie", "Niagara Falls", "Niagara-on-the-Lake",
+];
 const CATEGORIES = [
   { key: "venue",   query: "wedding venue" },
   { key: "bakery",  query: "wedding cake bakery" },

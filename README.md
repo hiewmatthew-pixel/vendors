@@ -1,6 +1,6 @@
-# GTA Wedding Vendor Portal — Golden Glance Studio
+# Ontario Wedding Vendor Portal — Golden Glance Studio
 
-A curated wedding vendor directory for the Greater Toronto Area, featuring venues, bakeries, and florists with budget filtering, map view, and list view.
+A curated wedding vendor directory for Southern Ontario, featuring venues, bakeries, and florists with price/sort filtering, an interactive map, favourites, and list view.
 
 ---
 
@@ -115,7 +115,7 @@ npm run fetch:vendors
 GOOGLE_MAPS_API_KEY=paste-your-key-here npm run fetch:vendors
 ```
 
-The script searches all 3 categories × 6 GTA cities, dedupes by Google Place ID, and overwrites `vendor-data.json`. Typical run: ~20 seconds, ~100–300 vendors. Cost: well under $1 (free tier covers it many times over).
+The script searches all 3 categories across the Southern Ontario cities listed in `REGIONS` (GTA + Niagara, Halton, Durham, Waterloo, Guelph, Barrie), dedupes by Google Place ID, and overwrites `vendor-data.json`. Cost: a few dollars at most (free tier covers it many times over).
 
 After it finishes, commit and push:
 

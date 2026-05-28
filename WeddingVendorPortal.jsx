@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -443,13 +443,19 @@ function makePinIcon(color, selected) {
   });
 }
 
-function FitBounds({ vendors }) {
+// Auto-fits the map to the current vendors, but only re-fits when the
+// filter *selection* changes (via fitKey) — not on incidental re-renders
+// like toggling a favourite — so the user's pan/zoom is preserved.
+function FitBounds({ vendors, fitKey }) {
   const map = useMap();
+  const latest = useRef(vendors);
+  latest.current = vendors;
   useEffect(() => {
-    if (!vendors.length) return;
-    const bounds = L.latLngBounds(vendors.map(v => [v.lat, v.lng]));
+    const vs = latest.current;
+    if (!vs.length) return;
+    const bounds = L.latLngBounds(vs.map(v => [v.lat, v.lng]));
     map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
-  }, [vendors, map]);
+  }, [fitKey, map]);
   return null;
 }
 
@@ -691,6 +697,13 @@ export default function WeddingVendorPortal() {
     });
   }, [categories, regions, search, sortBy, showFaves, favourites]);
 
+  // Stable signature of the filter *selection* — the map only auto-fits
+  // when this changes, so toggling a favourite doesn't reset the view.
+  const fitKey = useMemo(
+    () => `${[...categories].sort().join(",")}|${[...regions].sort().join(",")}|${search}|${showFaves}`,
+    [categories, regions, search, showFaves]
+  );
+
   const handleSelect = useCallback((id) => {
     setSelected(prev => prev === id ? null : id);
   }, []);
@@ -762,10 +775,10 @@ export default function WeddingVendorPortal() {
               fontWeight: 300, letterSpacing: 1, color: "#f0ece2",
               lineHeight: 1.2,
             }}>
-              GTA Wedding <span style={{ fontStyle: "italic", fontWeight: 600, color: "#C9A063" }}>Vendor Directory</span>
+              Ontario Wedding <span style={{ fontStyle: "italic", fontWeight: 600, color: "#C9A063" }}>Vendor Directory</span>
             </h1>
             <p style={{ fontSize: 13, color: "#7a7165", marginTop: 4 }}>
-              Venues, Bakeries & Florists across the Greater Toronto Area & Ontario
+              Venues, Bakeries & Florists across Southern Ontario
             </p>
           </div>
 
@@ -951,8 +964,8 @@ export default function WeddingVendorPortal() {
             overflow: "hidden",
           }}>
             <MapContainer
-              center={[43.65, -79.4]}
-              zoom={10}
+              center={[43.6, -79.8]}
+              zoom={9}
               scrollWheelZoom={true}
               style={{ width: "100%", height: "100%", background: "#14110d" }}
               zoomControl={true}
@@ -963,7 +976,7 @@ export default function WeddingVendorPortal() {
                 subdomains="abcd"
                 maxZoom={20}
               />
-              <FitBounds vendors={filtered} />
+              <FitBounds vendors={filtered} fitKey={fitKey} />
               <FlyToSelected selectedVendor={selectedVendor} />
               {routePoints.length === 2 && (
                 <Polyline
